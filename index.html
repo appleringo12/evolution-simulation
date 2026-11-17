@@ -3,6 +3,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="草原・森・サバンナの世界で、生物の進化や食物連鎖を観察・調整できるシミュレーションゲームです。">
 <meta name="application-name" content="生命の進化">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="生命の進化">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#10161d" media="(prefers-color-scheme: dark)">
 <title>生命の進化 - 草・果物・死体</title>
@@ -1643,5 +1648,29 @@ $("mScav").onclick = () => trackRandom("scavenger");
 $("mCarn").onclick = () => trackRandom("carnivore");
 
 resize();newWorld(rnd()*1e6|0);requestAnimationFrame(loop);
+
+// GitHub Pages用：オンラインなら最新版を確認し、オフラインなら保存済みのゲームを起動する。
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloadingForUpdate = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    // 起動直後に更新が適用された場合だけ読み直す。プレイ中の状態を突然消さない。
+    if (hadController && !reloadingForUpdate && performance.now() < 15000) {
+      reloadingForUpdate = true;
+      location.reload();
+    }
+  });
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js", {
+      scope: "./",
+      updateViaCache: "none"
+    }).then(registration => {
+      // 起動時に必ず更新確認。オフライン時の失敗は無視してキャッシュ版で遊べる。
+      registration.update().catch(() => {});
+    }).catch(() => {
+      // Service Workerを利用できない環境でも、オンラインの通常プレイは可能。
+    });
+  }, { once: true });
+}
 
 </script></body></html>

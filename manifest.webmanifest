@@ -1,0 +1,12 @@
+{
+  "id": "./",
+  "name": "生命の進化",
+  "short_name": "生命の進化",
+  "description": "生物の進化や食物連鎖を観察・調整できるシミュレーションゲーム",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef1f4",
+  "theme_color": "#eef1f4"
+}
