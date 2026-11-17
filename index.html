@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="草原・森・サバンナの世界で、生物の進化や食物連鎖を観察・調整できるシミュレーションゲームです。">
+<meta name="application-name" content="生命の進化">
+<meta name="theme-color" content="#eef1f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10161d" media="(prefers-color-scheme: dark)">
+<title>生命の進化 - 草・果物・死体</title>
+<style>
+:root{--bg:#eef1f4;--fg:#1c2530;--pn:#ffffff;--bd:#c5ced8;--ac:#2f7de1;--bt:#e3e9ef;
+ color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--fg:#e6edf3;--pn:#18212b;--bd:#2c3846;--bt:#243040}}
+:root[data-theme="dark"]{--bg:#10161d;--fg:#e6edf3;--pn:#18212b;--bd:#2c3846;--bt:#243040}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;overflow:hidden}
+#top{display:flex;flex:0 0 50px;height:50px;min-height:50px;box-sizing:border-box;gap:8px;align-items:center;padding:5px 8px;background:var(--pn);border-bottom:1px solid var(--bd);overflow:hidden;white-space:nowrap}
+#topSummary{display:flex;flex:0 0 auto;align-items:center;gap:10px;min-width:0;white-space:nowrap}
+#topSummary>b{display:block;flex:0 0 auto}
+#dayStat{display:inline-block;flex:0 0 6.5em;width:6.5em;text-align:center;white-space:nowrap;color:var(--ac);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+#topMetrics{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));align-items:center;gap:4px;flex:1 1 auto;min-width:0}
+.metric{display:flex;align-items:center;justify-content:center;gap:3px;min-width:0;height:30px;padding:0 3px;box-sizing:border-box;border:1px solid var(--bd);border-radius:5px;font-size:10px;white-space:nowrap;overflow:hidden}
+.metric-label{min-width:0;overflow:hidden;text-overflow:clip}
+.metric b{flex:0 0 auto;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+#topControls{display:flex;flex:0 0 auto;align-items:center;gap:4px;white-space:nowrap}
+#topControls button{padding:5px 8px}
+button{background:var(--bt);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:6px 10px;font:inherit;cursor:pointer}
+button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+#detailBox{position:fixed;right:6px;top:120px;z-index:1000;background:var(--pn);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:6px 8px;font-size:12px;box-shadow:0 2px 8px #0006;max-width:calc(100vw - 12px);max-height:calc(100dvh - 12px);overflow:auto;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+#detailBox.dragging{cursor:grabbing}
+#detailBox[hidden]{display:none}
+#detailBox table{border-collapse:collapse;font-variant-numeric:tabular-nums}
+#detailBox th,#detailBox td{padding:2px 6px;text-align:right;white-space:nowrap}
+#detailBox th:first-child,#detailBox td:first-child{text-align:left}
+#detailBox thead th{border-bottom:1px solid var(--bd);font-weight:600}
+#detailBox i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+#dietBar{display:flex;height:6px;width:100%;flex:none;background:var(--bd)}
+#dietBar>div{height:100%;transition:width 0.3s ease}
+#barHerb{background:#97d16a}
+#barFrug{background:#3498db}
+#barScav{background:#9b59b6}
+#barCarn{background:#e74c3c}
+#main{flex:1 1 0;min-height:0;min-width:0;display:flex;overflow:hidden}
+
+#leftCol{flex:1 1 0;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+#wrap{flex:1 1 auto;position:relative;overflow:hidden;min-width:0;min-height:150px;background:#1d4e89}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#000c;color:#fff;padding:6px 12px;border-radius:14px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none}
+
+#info {flex: 0 0 auto;min-height: 34px;padding: 6px 8px;background: var(--pn);border-top: 1px solid var(--bd);font-size: 12px;box-sizing: border-box;word-break: break-all;}
+#herdList{flex: 0 0 365px;height: 365px;min-height: 0;overflow-y: auto;overflow-x: hidden;overscroll-behavior-y: auto;-webkit-overflow-scrolling: touch;border-top: 1px solid var(--bd);padding: 4px;background: var(--bg);box-sizing: border-box;display: flex;flex-direction: column;gap: 4px;}
+#panel #herdList{flex:0 0 auto;height:auto;max-height:200px;overscroll-behavior-y:auto}
+#panel{flex:0 0 300px;width:300px;min-width:0;min-height:0;overflow-y:auto;background:var(--pn);border-left:1px solid var(--bd);padding:8px;box-sizing:border-box}
+#panel.hide{display:none}
+#panel h3{margin:10px 0 4px;font-size:13px}
+#panel h3.fold{cursor:pointer;user-select:none;padding:4px 0;border-bottom:1px solid var(--bd)}
+
+.herd{display: flex;flex-wrap: nowrap;align-items: center;gap: 6px;height: 32px;min-height: 32px;padding: 0 6px;box-sizing: border-box;border: 1px solid var(--bd);border-radius: 6px;cursor: pointer;white-space: nowrap;overflow: hidden;flex-shrink: 0;background: var(--pn);width: 100%;max-width: 100%;}
+.herd.on{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
+.herd i{width:14px;height:14px;border-radius:50%;border:1px solid #0006;flex:0 0 14px}
+.herd-name{flex:1 1 auto;min-width:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.herd span{margin-left:auto;font-size:11px;flex:0 0 auto;white-space:nowrap}
+
+label{display:block;font-size:12px;margin:4px 0}
+label input[type=range]{width:100%;-webkit-appearance:none;appearance:none;background:transparent;pointer-events:none;height:24px;margin:2px 0}
+label input[type=range]:focus{outline:none}
+label input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;background:var(--bd);border-radius:2px}
+label input[type=range]::-moz-range-track{width:100%;height:4px;background:var(--bd);border-radius:2px}
+label input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;cursor:pointer;width:32px;height:32px;margin-top:-14px;background:radial-gradient(circle,#fff 0%,#fff 6px,var(--bd) 6.5px,var(--bd) 7.5px,transparent 8px)}
+label input[type=range]::-moz-range-thumb{pointer-events:auto;cursor:pointer;width:32px;height:32px;border:none;background:transparent;background:radial-gradient(circle,#fff 0%,#fff 6px,var(--bd) 6.5px,var(--bd) 7.5px,transparent 8px)}
+
+output{float:right;cursor:pointer;border-bottom:1px dashed var(--bd)}
+.numedit{width:5.5em;font:inherit;padding:0 2px;box-sizing:border-box;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:4px}.row{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}
+input[type=text],input[type=number]{background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:5px;font:inherit;width:100px}
+
+@media (max-width:720px){
+ #top{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:22px 42px 34px;gap:4px;flex:0 0 114px;height:114px;min-height:114px;padding:5px 6px;align-items:center}
+ #topSummary{width:100%;justify-content:space-between;height:22px}
+ #dayStat{flex:0 0 auto;width:auto;min-width:6.5em;text-align:right}
+ #topMetrics{width:100%;height:42px;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(2,19px);gap:3px;flex:none}
+ .metric{height:19px;padding:0 2px;gap:2px;font-size:9px;border-radius:4px}
+ .metric b{font-size:11px}
+ #topControls{display:flex;width:100%;height:34px;justify-content:space-between;gap:4px}
+ #topControls button{flex:1 1 0;min-width:0;height:32px;padding:4px 2px;font-size:12px}
+ #main{flex-direction:column}
+ #leftCol{flex:1 1 auto;min-height:0;min-width:0;display:flex;flex-direction:column;}
+ #wrap{flex:1 1 auto;min-height:120px;min-width:0;}
+ #panel{flex:0 0 40%;height:40%;max-height:none;min-height:0;width:auto;border-left:0;border-top:1px solid var(--bd);overflow-y:auto;}
+}
+</style></head><body>
+<div id="top">
+ <div id="topSummary"><b>🧬 生命の進化</b><span id="dayStat">1日目</span></div>
+ <div id="topMetrics" aria-label="世界の状況">
+  <span class="metric" title="生存している生物の数"><span class="metric-label">全生物</span><b id="allCount">0</b></span>
+  <span class="metric" title="今までで一番大きかった生物のサイズ"><span class="metric-label">最大サイズ</span><b id="maxSize">0.0</b></span>
+  <span class="metric" title="フィールド上に残っている死体の数"><span class="metric-label">死体</span><b id="corpseCount">0</b></span>
+  <span class="metric" id="mDetail" style="cursor:pointer" title="食性ごとの平均ステータスを表示"><span class="metric-label">詳細</span><b id="detailArrow">▼</b></span>
+  <span class="metric" id="mHerb" style="cursor:pointer" title="草食動物をランダム追尾"><span class="metric-label">草食動物数</span><b id="herbivoreCount">0</b></span>
+  <span class="metric" id="mFrug" style="cursor:pointer" title="果物動物をランダム追尾"><span class="metric-label">果物動物数</span><b id="frugivoreCount">0</b></span>
+  <span class="metric" id="mScav" style="cursor:pointer" title="腐肉動物をランダム追尾"><span class="metric-label">腐肉動物数</span><b id="scavengerCount">0</b></span>
+  <span class="metric" id="mCarn" style="cursor:pointer" title="肉食動物をランダム追尾"><span class="metric-label">肉食動物数</span><b id="carnivoreCount">0</b></span>
+ </div>
+ <div id="topControls">
+  <button data-sp="0">⏸</button><button data-sp="1" class="on">▶</button><button data-sp="3">×3</button><button data-sp="10">×10</button><button data-sp="30">×30</button>
+  <button id="fit">🎯</button><button id="tg">☰</button>
+ </div>
+</div>
+<!-- 割合グラフ -->
+<div id="dietBar">
+ <div id="barHerb" title="草食動物の割合"></div>
+ <div id="barFrug" title="果物動物の割合"></div>
+ <div id="barScav" title="腐肉動物の割合"></div>
+ <div id="barCarn" title="肉食動物の割合"></div>
+</div>
+<div id="main">
+ <div id="leftCol">
+  <div id="wrap"><canvas id="cv"></canvas><div id="toast"></div><div id="detailBox" hidden></div></div>
+  <div id="info"></div>
+ </div>
+ <aside id="panel"></aside>
+</div>
+<script>
+"use strict";
+const $=id=>document.getElementById(id), rnd=Math.random, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+/* ================= 調整用の定数 ================= */
+let mapScale=1, worldScale=1;
+const CELL=16; let GW=80, GH=50, WW=GW*CELL, WH=GH*CELL;
+function applyMapDimensions(){worldScale=mapScale;GW=80*mapScale;GH=50*mapScale;WW=GW*CELL;WH=GH*CELL;grass=new Float32Array(GW*GH);grassCv.width=GW;grassCv.height=GH;gImg=gCtx.createImageData(GW,GH);gridCols=Math.ceil(WW/GRID_SIZE);gridRows=Math.ceil(WH/GRID_SIZE);}
+const MAXPOP=600;
+const MUT=0.12;
+const DAY=60;
+const REF_SIZE=4.0;
+const REF_SPEED=40.0;
+const BIRTH_AT=.8;
+const BIRTH_COST=.5;
+const HUNGRY=.8;
+const DEF_RAD=50;
+const FRUIT_RATE=20; 
+const STEP=0.05;
+const GRASS_EAT=9;   
+const GRASS_NUT=1/3; 
+const CORPSE_EAT=4;  
+const CORPSE_MAX=500;
+
+/* バイオーム定義 */
+const BIOMES=[
+ ["深海","#1d4e89",0,0,"#fff",1,0,0],
+ ["浅瀬","#3f86c6",0,0,"#ffb3d9",1,0,0],
+ ["草原","#97d16a",.3,15,"#ff5252",1,15,.08],
+ ["森","#3f8f4a",.4,15,"#9b59b6",1,15,.08],
+ ["サバンナ","#cbb759",.7,15,"#f39c12",3,15,.08]
+];
+
+/* 性格定義 */
+const P_NAME = { solitary: "孤立", social: "集団", sharing: "共有" };
+
+/* ステータス定義 */
+const SR={size:[0.1,30,0.1,"大きさ"],vision:[0,300,1,"視認距離"],speed:[0,120,1,"移動速度"],cd:[1,29,1,"出産クールタイム(日)"],litterSize:[1,10,1,"出産数"]};
+const DEF={size:3,vision:100,speed:40,cd:15,litterSize:1};
+const HR={rad:[10,300,10,"群れ範囲の半径"],hungry:[0.6,1.0,.01,"空腹と判断する割合"],birthAt:[0.6,1.0,.01,"出産できる空腹度の割合"],birthCost:[0.1,0.9,.05,"出産で減る空腹度の割合"],hmul:[0.1,1.9,.1,"群れの空腹になる速さ(倍)"]};
+
+const ER={
+ rate:[0,40,1,"果物の実る速さ(回/秒)"],dens:[0.1,1.9,.1,"果物の最大量(倍)"],life:[10,190,5,"果物が腐るまでの日数"],nut:[0.1,1.9,.1,"果物の栄養(倍)"],
+ fruitExtreme:[1,5,.1,"果物の極端さ(1～5)"],
+ metab:[0.1,1.9,.1,"空腹になる速さ(倍)"],mut:[0,0.24,.01,"突然変異の幅"],maxpop:[100,1100,10,"最大個体数"],
+ sizeMin:[0.1,30,0.1,"生物の最小サイズ"],sizeMax:[0.1,30,0.1,"生物の最大サイズ"],
+ spd:[0.1,1.9,.1,"移動速度(倍)"],cdm:[0.1,1.9,.1,"出産クールタイム(倍)"],
+ huntSuccess:[0,100,1,"狩りの成功確率(%)"],
+ huntCd:[0,120,1,"狩りクールタイム(秒)"],
+ huntHerdMin:[0,20,1,"襲わない群れの個体数(匹以下)"],
+ huntMin:[0.1,0.7,.05,"狩る相手の最小サイズ(何倍)"],huntMax:[0.1,1.5,.05,"狩る相手の最大サイズ(何倍)"],huntNut:[0.1,1.9,.1,"狩りによる栄養の増加倍率"],
+ grassRate:[0,2,.1,"草の生える速さ(倍)"],grassMax:[0.1,1.9,.1,"草の最大量(倍)"],grassNut:[0.1,1.9,.1,"草の栄養(倍)"],grassExtreme:[1,5,.1,"草の極端さ(1～5)"],grassEat:[0.1,1.9,.1,"草を食べる速さ(倍)"],
+ corpseMeat:[0,0.4,.05,"死体の肉の量(倍)"],corpseLife:[10,230,5,"死体が消えるまでの日数"],corpseEat:[0.1,1.9,.1,"死体を食べる速さ(倍)"],
+ lifespan:[1,19,1,"基準寿命（体格4・日）"],lifespanExp:[-0.5,2.0,.05,"体格による寿命補正指数（乗）"],
+ maxHBase:[10,110,1,"[式] 基準最大空腹度"],
+ metabBase:[0.05,0.65,.01,"[式] 基礎代謝係数"],
+ moveCost:[0,1.2,.05,"[式] 移動コスト係数"],senseCost:[0,0.4,.01,"[式] 感覚コスト係数"],
+ preyEBase:[20,300,5,"[式] 獲物基礎栄養"],
+ massExp:[1.0,4.0,.1,"[式] 質量の次元(乗)"],
+ bmrExp:[0.1,1.5,.05,"[式] 基礎代謝の質量指数(乗)"],
+ moveMassExp:[0.1,2.0,.1,"[式] 移動コストの質量指数(乗)"],
+ moveSpeedExp:[1.0,3.0,.1,"[式] 移動コストの速度指数(乗)"],
+ huntSizeBonus:[0,0.03,.001,"[式] 体格狩り速度ボーナス"],herdCap:[5,35,1,"[式] 群れ密度限界(匹)"],
+ dietMut:[0,0.2,0.001,"[式] 食性突然変異率"],fruitMut:[0,0.2,0.001,"[式] 果物好み突然変異率"],
+ growthRate:[0.01,10.0,0.01,"成長速度(倍/日)"],childHmul:[0.1,10,0.1,"子どもの空腹になる速さ(倍)"],
+ colorSat:[0, 100, 1, "群れ生成色の彩度(%)"],colorLit:[0, 100, 1, "群れ生成色の明度(%)"]
+};
+
+const rg=(d,st,nm,cap)=>{const f=x=>+x.toFixed(6);let lo=f(Math.round(d/3/st)*st),hi=f(Math.round(d*3/st)*st);if(cap!==undefined)hi=Math.min(hi,cap);return[lo,hi,st,nm]};
+Object.assign(SR,{vision:[0,300,1,SR.vision[3]],speed:[0,120,1,SR.speed[3]],cd:rg(DEF.cd,1,SR.cd[3]),litterSize:[1,10,1,SR.litterSize[3]]});
+Object.assign(HR,{rad:[10,300,5,HR.rad[3]],hungry:rg(HUNGRY,.01,HR.hungry[3],1),birthAt:rg(BIRTH_AT,.01,HR.birthAt[3],1),birthCost:rg(BIRTH_COST,.01,HR.birthCost[3],.95),hmul:rg(1,.01,HR.hmul[3])});
+Object.assign(ER,{
+ rate:rg(FRUIT_RATE,1,ER.rate[3]),dens:rg(1,.01,ER.dens[3]),life:rg(100,1,ER.life[3]),nut:rg(1,.01,ER.nut[3]),metab:rg(1,.01,ER.metab[3]),mut:rg(MUT,.01,ER.mut[3]),maxpop:rg(MAXPOP,10,ER.maxpop[3]),
+ spd:rg(1,.01,ER.spd[3]),cdm:rg(1,.01,ER.cdm[3]),huntNut:rg(0.5,.01,ER.huntNut[3]),huntMin:[0,1,.01,ER.huntMin[3]],huntMax:[0,1,.01,ER.huntMax[3]],corpseMeat:[0,1,.01,ER.corpseMeat[3]],
+ grassRate:rg(1,.01,ER.grassRate[3]),grassMax:rg(1,.01,ER.grassMax[3]),grassNut:rg(1,.01,ER.grassNut[3]),grassEat:rg(1,.01,ER.grassEat[3]),
+ grassExtreme:[1,5,.1,ER.grassExtreme[3]],fruitExtreme:[1,5,.1,ER.fruitExtreme[3]],corpseLife:rg(120,1,ER.corpseLife[3]),corpseEat:rg(1,.01,ER.corpseEat[3]),
+ lifespan:rg(10,1,ER.lifespan[3]),lifespanExp:rg(.75,.05,ER.lifespanExp[3]),maxHBase:rg(60,1,ER.maxHBase[3]),
+ metabBase:rg(.35,.01,ER.metabBase[3]), moveCost:rg(.6,.01,ER.moveCost[3]),senseCost:rg(.2,.01,ER.senseCost[3]),
+ preyEBase:rg(80,1,ER.preyEBase[3]),
+ massExp:[1.0,4.0,.1,ER.massExp[3]],bmrExp:[0.1,1.5,.05,ER.bmrExp[3]],
+ moveMassExp:[0.1,2.0,.1,ER.moveMassExp[3]],moveSpeedExp:[1.0,3.0,.1,ER.moveSpeedExp[3]],
+ huntSizeBonus:rg(.015,.001,ER.huntSizeBonus[3]),herdCap:rg(20,1,ER.herdCap[3]),
+ dietMut:[0,0.2,0.001,ER.dietMut[3]],fruitMut:[0,0.2,0.001,ER.fruitMut[3]],growthRate:rg(1.0,.01,ER.growthRate[3]),
+ huntHerdCd:[0,120,1,"群れ全体の狩りクールタイム(秒)"],personalityMut:[0,1.0,.01,"性格の突然変異率"]
+});
+const BUD_RANGE=[0.033,0.3];
+const hexRGB=h=>{const n=parseInt(h.slice(1),16);return[n>>16,n>>8&255,n&255]};
+const GCOL={2:[hexRGB("#dfe8aa"),hexRGB("#3c9a3a")],3:[hexRGB("#93ab8e"),hexRGB("#17632f")],4:[hexRGB("#e6dca4"),hexRGB("#869a2a")]};
+const DIETN={herbivore:"草食動物",frugivore:"果物動物",scavenger:"腐肉動物",carnivore:"肉食動物"};
+const GRASS_BIOMES=[2,3,4]; 
+const grassPrefName=id=>BIOMES[id]?.[0]||"草原";
+
+const ENV_NEW={
+ sizeMin:0.1, sizeMax:30, grassRate:1, grassMax:1, grassNut:1, grassEat:1, grassExtreme:1.5, fruitExtreme:1.5, huntHerdMin:0, corpseMeat:0.2, corpseLife:120, corpseEat:1, lifespan:10, lifespanExp:.75, huntCarnivore:true, huntSuccess:100, huntCd:0, growthRate:1.0, enableScavenger:false, childHmul:2, huntScavenger:false, eatScavCorpse:false, colorSat:50, colorLit:70, huntHerdCd:0, huntLeaveCorpse:false, enablePersonality:false, personalityMut:0.05
+};
+
+const CARN_PREFS=[
+ {b:2,d:"herbivore",n:"草原の草食動物"},{b:2,d:"frugivore",n:"草原の果物動物"},{b:2,d:"carnivore",n:"草原の肉食動物"},
+ {b:3,d:"herbivore",n:"森の草食動物"},  {b:3,d:"frugivore",n:"森の果物動物"},  {b:3,d:"carnivore",n:"森の肉食動物"},
+ {b:4,d:"herbivore",n:"サバンナの草食動物"},{b:4,d:"frugivore",n:"サバンナの果物動物"},{b:4,d:"carnivore",n:"サバンナの肉食動物"}
+];
+
+const PAL_SAVANNA = [60, 45, 30, 15, 0];
+const PAL_GRASS = [60, 75, 90, 105, 120];
+const PAL_FOREST = [120, 150, 180, 210, 240];
+const PAL_SCAVENGER = [240, 270, 300, 330, 360];
+
+function hslToHex(h, s, l) {
+  l /= 100;
+  const a = s * Math.min(l, 1 - l) / 100;
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0').toLowerCase();
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function getAutoColor(diet, biomeId) {
+  let hues;
+  if (diet === "scavenger") hues = PAL_SCAVENGER;
+  else if (biomeId === 4) hues = PAL_SAVANNA;
+  else if (biomeId === 3) hues = PAL_FOREST;
+  else hues = PAL_GRASS;
+  const s = env.colorSat ?? 80;
+  const l = env.colorLit ?? 50;
+  const usedColors = herds.map(h => h.color.toLowerCase());
+  let available = [];
+  let allColors = [];
+  for (let h of hues) {
+    const hex = hslToHex(h, s, l);
+    allColors.push(hex);
+    if (!usedColors.includes(hex)) available.push(hex);
+  }
+  if (available.length > 0) return available[Math.floor(rnd() * available.length)];
+  return allColors[Math.floor(rnd() * allColors.length)];
+}
+
+const getCreatureBiome=c=>{
+ if(c.diet==="herbivore")return GRASS_BIOMES.includes(c.grassPref)?c.grassPref:(c.h?.grassPref??2);
+ if(c.diet==="frugivore")return(c.fruitPref&&c.fruitPref[0])||c.h?.fruitPref?.[0]||3;
+ return c.carnBiomePref??c.h?.carnBiomePref??2;
+};
+const carnPrefName=(b,d)=>{const it=CARN_PREFS.find(p=>p.b===b&&p.d===d);return it?it.n:`${grassPrefName(b)}の${DIETN[d]||"獲物"}`};
+
+let seed=1,biome,mapCv,fruitCells=[],maxF=[],fc=[],fruits=[],pop=[],herds=[],sel=null,selC=null;
+let maxObservedSize=0;
+let grass=new Float32Array(GW*GH),grassCells=[],corpses=[],gAcc=0;
+const grassCv=document.createElement("canvas");grassCv.width=GW;grassCv.height=GH;
+const gCtx=grassCv.getContext("2d"); let gImg=gCtx.createImageData(GW,GH);
+let T=0,speed=1,placing=false,nextHid=1,nextId=1,fx=[];
+let env={
+ rate:FRUIT_RATE,dens:1,life:100,nut:1,metab:1,mut:MUT,maxpop:MAXPOP,spd:1,cdm:1,huntMin:.4,huntMax:.8,huntNut:0.5,grassExtreme:1.5,fruitExtreme:1.5,huntHerdMin:0,
+ maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,
+ preyEBase:80,massExp:3.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,
+ budding:false, buddingRate:0.10, dietMut:0.05, fruitMut:0.05, autoDelExtinct:true,
+ ...ENV_NEW
+};
+let cw=0,ch=0,dpr=1,z=1,ox=0,oy=0,fitted=false;
+const cv=$("cv"),ctx=cv.getContext("2d"),panel=$("panel"),wrap=$("wrap");
+
+const GRID_SIZE = 100;
+let gridCols = 1, gridRows = 1;
+let gridPop = [], gridFruits = [], gridCorpses = [];
+const herdMembers = new Map(); 
+
+function buildGrids() {
+  gridCols = Math.ceil(WW / GRID_SIZE);
+  gridRows = Math.ceil(WH / GRID_SIZE);
+  const len = gridCols * gridRows;
+  gridPop = Array.from({length: len}, () => []);
+  gridFruits = Array.from({length: len}, () => []);
+  gridCorpses = Array.from({length: len}, () => []);
+
+  for (const c of pop) {
+    if (c.dead) continue;
+    const gx = clamp(c.x / GRID_SIZE | 0, 0, gridCols - 1);
+    const gy = clamp(c.y / GRID_SIZE | 0, 0, gridRows - 1);
+    gridPop[gy * gridCols + gx].push(c);
+  }
+  for (const f of fruits) {
+    if (f.life <= 0) continue;
+    const gx = clamp(f.x / GRID_SIZE | 0, 0, gridCols - 1);
+    const gy = clamp(f.y / GRID_SIZE | 0, 0, gridRows - 1);
+    gridFruits[gy * gridCols + gx].push(f);
+  }
+  for (const k of corpses) {
+    if (k.meat <= .05 || k.life <= 0) continue;
+    const gx = clamp(k.x / GRID_SIZE | 0, 0, gridCols - 1);
+    const gy = clamp(k.y / GRID_SIZE | 0, 0, gridRows - 1);
+    gridCorpses[gy * gridCols + gx].push(k);
+  }
+}
+
+function getNearby(arr2D, x, y, r) {
+  const minX = clamp((x - r) / GRID_SIZE | 0, 0, gridCols - 1);
+  const maxX = clamp((x + r) / GRID_SIZE | 0, 0, gridCols - 1);
+  const minY = clamp((y - r) / GRID_SIZE | 0, 0, gridRows - 1);
+  const maxY = clamp((y + r) / GRID_SIZE | 0, 0, gridRows - 1);
+  const res = [];
+  for (let gy = minY; gy <= maxY; gy++) {
+    for (let gx = minX; gx <= maxX; gx++) {
+      const cell = arr2D[gy * gridCols + gx];
+      for (let i = 0; i < cell.length; i++) res.push(cell[i]);
+    }
+  }
+  return res;
+}
+
+function getMass(size) {
+  return Math.pow(size / REF_SIZE, env.massExp);
+}
+function updateCache(c) {
+  const m = getMass(c.size);
+  const m_s = getMass(c.s.size);
+  c._mass = m;
+  c._maxMass = m_s;
+  c._maxH = Math.max(1, env.maxHBase * m);
+  c._preyNut = (env.preyEBase * m_s) * env.huntNut * clamp(c.size / c.s.size, 0, 1);
+  c._lifespanDays = Math.max(1, env.lifespan * Math.pow(c.s.size / REF_SIZE, env.lifespanExp));
+  c._huntSpeed = c.s.speed * (1 + env.huntSizeBonus * c.size);
+  c._bmrM = Math.pow(m, env.bmrExp);
+  c._moveM = Math.pow(m, env.moveMassExp);
+  c._cached = true;
+}
+function invalidateCaches() {for(const c of pop) updateCache(c);}
+
+const maxH = c => c._maxH;
+const lifespanDays = c => c._lifespanDays;
+const huntSpeed = c => c._huntSpeed;
+const preyNut = c => c._preyNut;
+
+function hash(x,y){let h=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(seed,1013904223)|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967295}
+function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+ const a=hash(xi,yi),b=hash(xi+1,yi),c=hash(xi,yi+1),d=hash(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
+function fbm(x,y,o){let s=0,a=1,t=0,f=1;for(let i=0;i<3;i++){s+=a*vnoise(x*f+o,y*f+o);t+=a;a/=2;f*=2}return s/t}
+function genWorld(s){
+ seed=s;applyMapDimensions();biome=new Uint8Array(GW*GH);fruitCells=[];maxF=BIOMES.map(()=>0);
+ mapCv=document.createElement("canvas");mapCv.width=WW;mapCv.height=WH;const g=mapCv.getContext("2d");
+ for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
+  const dx=(x/GW-.5)*2,dy=(y/GH-.5)*2;
+  const e=fbm(x/(20*mapScale),y/(20*mapScale),0)-Math.pow(Math.max(Math.abs(dx),Math.abs(dy)),3)*.45;
+  const m=fbm(x/(16*mapScale),y/(16*mapScale),50);
+  let b;if(e<.18)b=0;else if(e<.26)b=1;else if(e>.62)b=4;else if(m<.5)b=2;else b=3;
+  biome[y*GH*0+y*GW+x]=b;
+  g.fillStyle=BIOMES[b][1];g.fillRect(x*CELL,y*CELL,CELL,CELL);
+  g.fillStyle="rgba(0,0,0,"+hash(x,y)*.07+")";g.fillRect(x*CELL,y*CELL,CELL,CELL);
+  if(BIOMES[b][2]>0){
+   const reps=BIOMES[b][5]||1;
+   for(let k=0;k<reps;k++)fruitCells.push(y*GW+x);
+   maxF[b]+=BIOMES[b][2];
+  }
+ }
+ maxF=maxF.map(Math.round);
+ grass=new Float32Array(GW*GH);grassCells=[];corpses=[];
+ for(let i=0;i<GW*GH;i++)if(biome[i]>=2){grassCells.push(i);grass[i]=BIOMES[biome[i]][6]*env.grassMax}
+ renderGrass();
+}
+const cellAt=(x,y)=>biome[clamp(y/CELL|0,0,GH-1)*GW+clamp(x/CELL|0,0,GW-1)];
+
+function growFruit1(init){
+ const i=fruitCells[rnd()*fruitCells.length|0],b=biome[i];
+ if(fc[b]<maxF[b]*env.dens){fruits.push({x:(i%GW+rnd())*CELL,y:(Math.floor(i/GW)+rnd())*CELL,b,life:init?rnd()*env.life*1.5:env.life*(.6+rnd()*.9)});fc[b]++}
+}
+function updateFruits(dt){
+ let n=env.rate*dt;while(n>0){if(rnd()<n)growFruit1();n--}
+ let j=0;for(const f of fruits){f.life-=dt;if(f.life>0)fruits[j++]=f;else fc[f.b]--}
+ fruits.length=j;
+}
+function updateGrass(dt){
+ gAcc+=dt;if(gAcc<.5)return;const t=gAcc;gAcc=0;
+ for(let k=0;k<grassCells.length;k++){const i=grassCells[k],B=BIOMES[biome[i]],mx=B[6]*env.grassMax;const g=grass[i]+B[7]*(env.grassRate*0.8)*t;grass[i]=g>mx?mx:g}
+}
+function renderGrass(){
+ const d=gImg.data;
+ for(let i=0;i<GW*GH;i++){
+  const b=biome[i],o=i*4;
+  if(b<2){d[o+3]=0;continue}
+  const mx=BIOMES[b][6]*env.grassMax,r=mx>0?Math.min(1,grass[i]/mx):0,lo=GCOL[b][0],hi=GCOL[b][1];
+  d[o]=lo[0]+(hi[0]-lo[0])*r;d[o+1]=lo[1]+(hi[1]-lo[1])*r;d[o+2]=lo[2]+(hi[2]-lo[2])*r;d[o+3]=235;
+ }
+ gCtx.putImageData(gImg,0,0);
+}
+function findGrass(c,R){
+ const preferredBiome=GRASS_BIOMES.includes(c.grassPref)?c.grassPref:(GRASS_BIOMES.includes(c.h.grassPref)?c.h.grassPref:2);
+ const cx=c.x/CELL|0,cy=c.y/CELL|0,rr=Math.ceil(R/CELL);
+ let best=-1,bs=0;
+ for(let y=Math.max(0,cy-rr);y<=Math.min(GH-1,cy+rr);y++)for(let x=Math.max(0,cx-rr);x<=Math.min(GW-1,cx+rr);x++){
+  const i=y*GW+x,a=grass[i];if(biome[i]!==preferredBiome||a<1)continue;
+  const d=Math.hypot((x+.5)*CELL-c.x,(y+.5)*CELL-c.y);if(d>R)continue;
+  const sc=a/(d+24);if(sc>bs){bs=sc;best=i}
+ }
+ return best;
+}
+
+function pale(hex,t){const n=parseInt(hex.slice(1),16),f=v=>Math.round(v+(255-v)*t);return`rgb(${f(n>>16)},${f(n>>8&255)},${f(n&255)})`}
+function spawnCorpse(c){
+ if(env.corpseMeat<=0)return;
+ const meat=(env.preyEBase*getMass(c.s.size))*env.corpseMeat*clamp(c.size/c.s.size,0,1);
+ const b = getCreatureBiome(c);
+ corpses.push({x:c.x,y:c.y,ang:c.ang,size:c.size,vis:c.s.vision,pale:pale(c.h.color,.6),meat,meat0:meat,life:env.corpseLife,life0:env.corpseLife,diet:c.diet,biome:b});
+ if(corpses.length>CORPSE_MAX)corpses.shift();
+}
+function updateCorpses(dt){
+ let j=0;for(const k of corpses){k.life-=dt;if(k.life>0&&k.meat>.05)corpses[j++]=k}corpses.length=j;
+}
+
+function randLand(){for(let k=0;k<300;k++){const i=fruitCells[rnd()*fruitCells.length|0];if(biome[i]>=2)return[(i%GW+.5)*CELL,(Math.floor(i/GW)+.5)*CELL]}return[WW/2,WH/2]}
+function bestBiome(b){const cells=[];for(let i=0;i<biome.length;i++)if(biome[i]===b)cells.push(i);if(!cells.length)return randLand();let best=cells[0],maxS=-1;for(const i of cells){const cx=i%GW,cy=Math.floor(i/GW);let s=0;for(let y=Math.max(0,cy-8*mapScale);y<=Math.min(GH-1,cy+8*mapScale);y++)for(let x=Math.max(0,cx-8*mapScale);x<=Math.min(GW-1,cx+8*mapScale);x++)if(biome[y*GW+x]===b)s++;if(s>maxS){maxS=s;best=i}}return[(best%GW+.5)*CELL,(Math.floor(best/GW)+.5)*CELL]}
+
+function addHerd(name,st,preferredBiome=null, diet="herbivore"){
+ const id=nextHid++;
+ const [cx,cy]=preferredBiome===null?randLand():bestBiome(preferredBiome);
+ const color = getAutoColor(diet, preferredBiome ?? 2);
+ const h={id,name:name||"群れ"+id,color,cx,cy,st:{...st},rad:DEF_RAD,hungry:HUNGRY,birthAt:BIRTH_AT,birthCost:BIRTH_COST,hmul:1,diet:diet,fruitPref:[preferredBiome??3],grassPref:GRASS_BIOMES.includes(preferredBiome)?preferredBiome:GRASS_BIOMES[rnd()*GRASS_BIOMES.length|0],carnBiomePref:GRASS_BIOMES.includes(preferredBiome)?preferredBiome:2,carnDietPref:"herbivore",huntCd:0};
+ herds.push(h);return h;
+}
+
+const grassBiomeFactor=b=>b===4?env.grassExtreme:(b===3?1/env.grassExtreme:1);
+const fruitBiomeFactor=b=>b===3?env.fruitExtreme:(b===4?1/env.fruitExtreme:1);
+const fruitNut=b=>BIOMES[b][3]*env.nut*fruitBiomeFactor(b);
+
+function canEat(c){ return c.hun < maxH(c) - 1e-7; }
+function canEatCorpse(c){ return c.hun < maxH(c) - 1e-7; }
+function livingHerdCount(h){let n=0;for(const c of pop)if(!c.dead&&c.h===h)n++;return n}
+function herdCountInRange(h,born=[]){let n=0;for(const c of pop)if(!c.dead&&c.h===h&&Math.hypot(c.x-h.cx,c.y-h.cy)<=h.rad)n++;for(const c of born)if(c.h===h&&Math.hypot(c.x-h.cx,c.y-h.cy)<=h.rad)n++;return n}
+
+function mk(h,x,y,s,hun,diet,fruitPref,grassPref,deferred,huntCd,carnBiomePref,carnDietPref,initialRatio=1, personality="solitary"){
+ const fp = fruitPref ? [...fruitPref] : [...(Array.isArray(h.fruitPref)?h.fruitPref:[h.fruitPref??3])];
+ const gp = GRASS_BIOMES.includes(grassPref) ? grassPref : (GRASS_BIOMES.includes(h.grassPref) ? h.grassPref : 2);
+ const cbp = GRASS_BIOMES.includes(carnBiomePref) ? carnBiomePref : (GRASS_BIOMES.includes(h.carnBiomePref) ? h.carnBiomePref : 2);
+ const cdp = carnDietPref || h.carnDietPref || "herbivore";
+ const c={x,y,ang:rnd()*6.28,wa:rnd()*6.28,h,s:{...s},size:Math.max(env.sizeMin, s.size*initialRatio),hun:1,stun:0,lunge:0,la:0,gen:1,cdT:s.cd*rnd(),atk:0,tk:rnd()*.25,tgt:null,mode:0,age:0,dead:false,id:nextId++,hidden:false,huntTimer:0,huntCd:huntCd||0,gi:-1,diet:diet||h.diet||"herbivore",fruitPref:fp,grassPref:gp,carnBiomePref:cbp,carnDietPref:cdp, personality:personality||"solitary", isLeader:false};
+ updateCache(c); 
+ c.hun = hun ?? maxH(c);
+ h.had=true;
+ if(!deferred)pop.push(c);
+ return c;
+}
+function release(h,n,diet,fruitPref){for(let i=0;i<n;i++){const x=h.cx+(rnd()-.5)*60,y=h.cy+(rnd()-.5)*60;if(cellAt(x,y)!==0)mk(h,x,y,h.st,null,diet||h.diet,fruitPref||h.fruitPref,h.grassPref,false,0,h.carnBiomePref,h.carnDietPref)}}
+
+function newWorld(s){
+ genWorld(s);T=0;pop=[];fruits=[];fc=BIOMES.map(()=>0);herds=[];nextHid=1;selC=null;fx=[];maxObservedSize=0;
+ for(let i=0;i<3000*mapScale*mapScale;i++)growFruit1(true);
+ const initStats={size:3,vision:10,speed:10,cd:8,litterSize:1};
+ const s1=addHerd("サバンナ",initStats,4,"herbivore");
+ const s2=addHerd("草",initStats,2,"herbivore");
+ const s3=addHerd("森",initStats,3,"herbivore");
+ release(s1,10,"herbivore",[4]);release(s2,10,"herbivore",[2]);release(s3,10,"herbivore",[3]);
+ sel=s1;renderPanel();fit();
+}
+
+function isTargetClaimed(target, mode, self){
+ for(const o of pop){if(o!==self&&!o.dead&&o.mode===mode&&o.tgt===target&&!o.yielding)return true}
+ return false;
+}
+
+function think(c){
+ const s=c.s, curB=cellAt(c.x, c.y);
+ const effVision = (curB===3 && c.size>4) ? s.vision * Math.max(0.6, 1-(c.size-4)*0.05) : s.vision;
+ const v2=effVision*effVision;
+ let threat=null,td=v2,prey=null,pd=v2;
+
+ const canHunt = c.diet==="carnivore" && (!c.huntCd || c.huntCd<=0) && (!c.h.huntCd || c.h.huntCd<=0);
+ const canHuntCarn = !!env.huntCarnivore;
+
+ const nearbyPop = getNearby(gridPop, c.x, c.y, effVision);
+ for(const o of nearbyPop){
+  if(o===c||o.dead||o.h===c.h)continue;
+  const d=(o.x-c.x)**2+(o.y-c.y)**2;if(d>v2)continue;
+  const oBiome = getCreatureBiome(o);
+  const isMatchPref = (o.diet === c.carnDietPref && oBiome === c.carnBiomePref) || (o.diet === "scavenger" && env.huntScavenger);
+  const isPrey = canHunt && isMatchPref && (canHuntCarn || o.diet!=="carnivore") && c.hun<=maxH(c)*0.5 && livingHerdCount(o.h)>env.huntHerdMin && canEat(c) && !isTargetClaimed(o,2,c) && o.size>=c.size*env.huntMin && o.size<=c.size*env.huntMax && o.s.speed<=huntSpeed(c);
+  const isCarnPair = c.diet==="carnivore" && o.diet==="carnivore";
+  const isThreat = !isPrey && (!isCarnPair || canHuntCarn) && o.size>=c.size*1.8;
+  if(isThreat){if(d<td){td=d;threat=o}}
+  else if(isPrey){if(d<pd){pd=d;prey=o}}
+ }
+ if(threat){c.mode=1;c.tgt=threat;c.huntTimer=0;return}
+ if(c.hun>=c.h.birthAt*maxH(c)&&c.cdT<=0&&herdCountInRange(c.h)<env.herdCap&&c.size>=c.s.size*0.999){let mt=null,md=v2;
+  for(const o of nearbyPop){if(o===c||o.dead||o.h!==c.h||o.cdT>0||o.hun<o.h.birthAt*maxH(o)||o.size<o.s.size*0.999)continue;const d=(o.x-c.x)**2+(o.y-c.y)**2;if(d<md){md=d;mt=o}}
+  if(mt){c.mode=4;c.tgt=mt;c.huntTimer=0;return}}
+ let fr=null,fd=v2;
+ 
+ if(c.diet==="frugivore"){
+  const myPrefs = Array.isArray(c.fruitPref) ? c.fruitPref : (Array.isArray(c.h.fruitPref)?c.h.fruitPref:[3]);
+  const nearbyFruits = getNearby(gridFruits, c.x, c.y, effVision);
+  for(const f of nearbyFruits){
+   if(!canEat(c))continue;
+   if(!myPrefs.includes(f.b))continue;
+   const d=(f.x-c.x)**2+(f.y-c.y)**2;if(d<fd&&!isTargetClaimed(f,3,c)){fd=d;fr=f}
+  }
+ }
+ let cp=null,cd=v2;
+ if((c.diet==="carnivore"||c.diet==="scavenger")&&canEatCorpse(c)){
+  const nearbyCorpses = getNearby(gridCorpses, c.x, c.y, effVision);
+  for(const k of nearbyCorpses){
+   if(k.meat<=.5)continue;
+   if(c.diet==="carnivore" && !((k.diet === c.carnDietPref && k.biome === c.carnBiomePref) || (k.diet === "scavenger" && env.eatScavCorpse))) continue;
+   const d=(k.x-c.x)**2+(k.y-c.y)**2;if(d<cd){cd=d;cp=k}
+  }
+ }
+ if(cp&&(!prey||cd<pd)){c.mode=6;c.tgt=cp;c.huntTimer=0;return}
+ if(prey&&(!fr||pd<fd)){c.mode=2;c.tgt=prey;c.huntTimer=0;return}
+ if(fr){c.mode=3;c.tgt=fr;c.huntTimer=0;return}
+ if(c.diet==="herbivore"&&canEat(c)){const gi=findGrass(c,effVision);if(gi>=0){c.mode=5;c.gi=gi;c.tgt=null;c.huntTimer=0;return}}
+ c.mode=0;c.tgt=null;c.huntTimer=0;
+}
+
+function updateCreature(c,dt,born){
+ const s=c.s;
+ if(c.size < s.size){
+  c.size = Math.min(s.size, c.size + s.size * env.growthRate * (dt / DAY));
+  updateCache(c); 
+ }
+ const mx=maxH(c);c.age+=dt;c.atk-=dt;c.cdT-=dt;c.stun-=dt;c.lunge-=dt;
+ if(c.huntCd>0)c.huntCd=Math.max(0,c.huntCd-dt);
+ let foodNutrition=0;
+ if(c.age>=lifespanDays(c)*DAY){c.dead=true;c.leaveCorpse=(c.size>=c.s.size*0.99);return}
+ if(c.hun<=0){c.dead=true;c.leaveCorpse=(c.size>=c.s.size*0.99);return}
+ 
+ c.hidden = false;
+ c.yielding = false;
+ if (env.enablePersonality && c.personality === "sharing" && (c.diet === "carnivore" || c.diet === "scavenger") && (c.hun > mx * 0.2)) {
+   let hasHungryOther = false;
+   const members = herdMembers.get(c.h.id) || [];
+   for(const m of members) {
+     if (m !== c && m.hun <= maxH(m) * 0.2) {
+       hasHungryOther = true; break;
+     }
+   }
+   if (hasHungryOther) c.yielding = true;
+ }
+
+ c.tk-=dt;if(c.tk<=0){c.tk=0.5+rnd()*0.5;think(c)} 
+ let want=c.ang,sp=s.speed*.5,t=c.tgt;
+ c.fullReturnT=Math.max(0,(c.fullReturnT||0)-dt);
+
+ let refX = c.h.cx, refY = c.h.cy;
+ const isSocial = env.enablePersonality && (c.personality === "social" || c.personality === "sharing");
+ if (isSocial && !c.isLeader && c.h.leader && !c.h.leader.dead) {
+  refX = c.h.leader.x;
+  refY = c.h.leader.y;
+ }
+ 
+ const distToRef = Math.hypot(refX - c.x, refY - c.y);
+ if (isSocial && !c.isLeader) {
+  if (distToRef > c.h.rad && c.fullReturnT <= 0) c.fullReturnT = 5;
+ } else {
+  if(c.hun >= mx-1e-7 && distToRef > c.h.rad && c.fullReturnT <= 0) c.fullReturnT = 5;
+ }
+
+ if(c.mode===1){
+  if(!t||t.dead)c.mode=0;
+  else{ want=Math.atan2(c.y-t.y,c.x-t.x);sp=s.speed; }
+ }
+ else if(c.mode===2){
+  if(c.hun>mx*0.5){c.mode=0;c.tgt=null;c.huntTimer=0;c.tk=0}
+  else {
+  c.huntTimer+=dt;
+  if(!t||t.dead||c.huntTimer>4.0){
+   c.mode=0;c.tgt=null;c.huntTimer=0;c.hun-=.02*mx;c.tk=0.8;
+  }else{
+   want=Math.atan2(t.y-c.y,t.x-c.x);sp=huntSpeed(c);
+   if (c.yielding) {
+     const dToT = Math.hypot(t.x-c.x, t.y-c.y);
+     if (dToT < c.size + t.size + 15) {
+       want += (rnd() - 0.5) * 2; 
+       sp = huntSpeed(c) * 0.5;
+     }
+   } else if(c.atk<=0&&!isTargetClaimed(t,2,c)&&Math.hypot(t.x-c.x,t.y-c.y)<c.size+t.size){
+    const successRate = env.huntSuccess / 100;
+    if(rnd()<successRate){
+     c.atk=1.5;c.stun=1.0;c.lunge=.25;c.la=Math.atan2(t.y-c.y,t.x-c.x);c.hun-=.03*mx;
+     t.dead=true;
+     hitFx(t,true);
+     if (env.huntLeaveCorpse) {
+       t.leaveCorpse = true;
+     } else {
+       foodNutrition+=preyNut(t);
+     }
+     c.huntCd=env.huntCd||0;
+     c.h.huntCd=env.huntHerdCd||0;
+    }else{
+     c.atk=2.0;c.stun=1.5;c.hun-=.05*mx;
+     t.lunge=.35;t.la=Math.atan2(t.y-c.y,t.x-c.x);
+     counterFx(c.x,c.y);
+    }
+    c.huntTimer=0;
+   }
+  }
+  }
+ }
+ else if(c.mode===3){
+  if(!t||t.life<=0||!canEat(c)){c.mode=0;c.tgt=null;c.tk=0}
+  else{
+   want=Math.atan2(t.y-c.y,t.x-c.x);sp=s.speed;
+   if(env.enablePersonality && c.personality==="sharing" && c.h.hasHungryMember){
+    // 共有型は空腹の仲間がいる間、果物を独占せず譲る
+    if(Math.hypot(t.x-c.x,t.y-c.y)<c.size+12)sp=s.speed*0.5;
+   } else if(t.life>0&&!isTargetClaimed(t,3,c)&&Math.hypot(t.x-c.x,t.y-c.y)<c.size+3){
+    t.life=0;foodNutrition+=fruitNut(t.b);
+   }
+  }
+ }
+ else if(c.mode===5){
+  const gi=c.gi;
+  if(gi<0||grass[gi]<.3||!canEat(c)){c.mode=0;c.gi=-1;c.tk=0}
+  else{
+   want=Math.atan2((Math.floor(gi/GW)+.5)*CELL-c.y,(gi%GW+.5)*CELL-c.x);sp=s.speed;
+   const ci=clamp(c.y/CELL|0,0,GH-1)*GW+clamp(c.x/CELL|0,0,GW-1);
+   if(ci===gi){
+    sp=s.speed*.12;
+    const biteRate=env.grassEat*GRASS_EAT*Math.pow(c.size/REF_SIZE,1.5)*dt;
+    const gNut=env.grassNut*GRASS_NUT*grassBiomeFactor(biome[gi]);
+    const bite=Math.min(grass[gi],biteRate,Math.max(0,(mx-c.hun)/gNut));
+    grass[gi]-=bite;foodNutrition+=bite*gNut;
+   }
+  }
+ }
+ else if(c.mode===6){
+  const matchCorpse = t && (c.diet === "scavenger" || (c.diet === "carnivore" && ((t.diet === c.carnDietPref && t.biome === c.carnBiomePref) || (t.diet === "scavenger" && env.eatScavCorpse))));
+  if(!t||!matchCorpse||t.meat<=.05||t.life<=0||!canEatCorpse(c)){c.mode=0;c.tgt=null;c.tk=0}
+  else{
+   want=Math.atan2(t.y-c.y,t.x-c.x);sp=s.speed;
+   const cr=t.size*Math.max(.2,Math.sqrt(t.meat/t.meat0));
+   if (c.yielding) {
+     const dToT = Math.hypot(t.x-c.x, t.y-c.y);
+     if (dToT < c.size + cr + 15) {
+       want += (rnd() - 0.5) * 2;
+       sp = s.speed * 0.5;
+     }
+   } else if(Math.hypot(t.x-c.x,t.y-c.y)<c.size+cr+2){
+    sp=s.speed*.1;
+    const bite=Math.min(t.meat,env.corpseEat*CORPSE_EAT*Math.pow(c.size/REF_SIZE,1.5)*dt);
+    t.meat-=bite;foodNutrition+=bite;
+   }
+  }
+ }
+ if(c.mode===4){
+  if(!t||t.dead||t.cdT>0||c.cdT>0||t.hun<t.h.birthAt*maxH(t)||c.hun<c.h.birthAt*mx||herdCountInRange(c.h)>=env.herdCap)c.mode=0;
+  else{
+   want=Math.atan2(t.y-c.y,t.x-c.x);sp=s.speed*.8;
+   if(Math.hypot(t.x-c.x,t.y-c.y)<c.size+t.size+4&&herdCountInRange(c.h,born)<env.herdCap)mate(c,t,born);
+  }
+ }
+
+ if(c.fullReturnT>0){
+  const herdDx=refX-c.x,herdDy=refY-c.y;
+  const herdDist=Math.hypot(herdDx,herdDy);
+  if(herdDist>c.h.rad){
+   if(c.mode!==4){
+    c.mode=0;c.tgt=null;c.gi=-1;
+    want=Math.atan2(herdDy,herdDx);c.wa=want;
+    sp=s.speed;
+   }
+  }else{
+   c.fullReturnT=0;
+  }
+ }
+
+ if(c.mode===0){
+  c.wa+=(rnd()-.5)*dt*3;want=c.wa;const dx=refX-c.x,dy=refY-c.y;
+  const dd=Math.hypot(dx,dy),R=c.h.rad;
+  if(c.hun>=c.h.hungry*mx){
+   if(dd>R){want=Math.atan2(dy,dx);c.wa=want}
+  }else{
+   if(dd<R){const o=Math.atan2(-dy,-dx);c.wa+=Math.atan2(Math.sin(o-c.wa),Math.cos(o-c.wa))*dt*.8}
+   want=c.wa;sp=s.speed*.7;
+   
+   if(c.diet==="frugivore"){
+    const pr=Array.isArray(c.fruitPref)?c.fruitPref:(Array.isArray(c.h.fruitPref)?c.h.fruitPref:[3]);
+    const cb=cellAt(c.x,c.y),nb=cellAt(c.x+Math.cos(want)*25,c.y+Math.sin(want)*25);
+    if(pr.includes(cb)&&!pr.includes(nb)){c.wa+=Math.PI+(rnd()-.5);want=c.wa}
+    else if(!pr.includes(cb) && dd>R){want=Math.atan2(dy,dx);c.wa=want}
+   }
+   if(c.diet==="herbivore"){
+    const gp=GRASS_BIOMES.includes(c.grassPref)?c.grassPref:2;
+    const cb=cellAt(c.x,c.y),nb=cellAt(c.x+Math.cos(want)*25,c.y+Math.sin(want)*25);
+    if(cb===gp&&nb!==gp){c.wa+=Math.PI+(rnd()-.5);want=c.wa}
+    else if(cb!==gp&&dd>R){want=Math.atan2(dy,dx);c.wa=want}
+   }
+  }
+ }
+ 
+ const curB=cellAt(c.x,c.y);
+ if(curB===3 && c.size>4){
+  const forestDrag = 1 - clamp((c.size - 4) * 0.05, 0, 0.45);
+  sp *= forestDrag;
+ }
+
+ sp*=env.spd;
+ if(c.stun>0)sp=0;
+ if(c.fullReturnT>0){
+  const dx=refX-c.x,dy=refY-c.y;
+  if(Math.hypot(dx,dy)>c.h.rad){want=Math.atan2(dy,dx);sp=s.speed*env.spd;}
+  else c.fullReturnT=0;
+ }
+
+ const currentSpeedRatio = sp / REF_SPEED;
+ const energyBMR = env.metabBase * c._bmrM;
+ const energyMove = env.moveCost * c._moveM * Math.pow(currentSpeedRatio, env.moveSpeedExp);
+ const energySense = env.senseCost * Math.pow(s.vision / 100, 2);
+ const baseConsumption = energyBMR + energyMove + energySense;
+ const childMultiplier = (c.size < c.s.size * 0.999) ? env.childHmul : 1;
+ c.hun -= baseConsumption * dt * env.metab * c.h.hmul * childMultiplier;
+ if(foodNutrition>0)c.hun=Math.min(mx,c.hun+foodNutrition);
+ if(c.hun<=0){c.dead=true;c.leaveCorpse=(c.size>=c.s.size*0.99);return}
+
+ let d=want-c.ang;d=Math.atan2(Math.sin(d),Math.cos(d));
+ const turnSpd = clamp(26 / c.size, 1.8, 14);
+ c.ang += d * Math.min(1, dt * turnSpd);
+
+ const nx=c.x+Math.cos(c.ang)*sp*dt,ny=c.y+Math.sin(c.ang)*sp*dt;
+ const b=(nx<0||ny<0||nx>=WW||ny>=WH)?0:cellAt(nx,ny);
+ if(b===0){c.wa=c.ang+Math.PI+(rnd()-.5);c.ang=c.wa}
+ else{const k=b===1?.6:1;c.x+=(nx-c.x)*k;c.y+=(ny-c.y)*k}
+}
+
+let buddingAcc = 0;
+function checkBudding(dt){
+ if(!env.budding) return;
+ buddingAcc += dt;
+ if(buddingAcc < DAY) return;
+ buddingAcc -= DAY;
+ for(const h of herds.slice()){
+  const members = pop.filter(c => !c.dead && c.h === h);
+  if(members.length >= 4){
+   const leaveCount = Math.max(2, Math.floor(members.length * 0.1));
+   if(members.length > leaveCount){
+    if(rnd() < env.buddingRate) disperseHerd(h, members, leaveCount);
+   }
+  }
+ }
+}
+
+function findFoodCenter(member, startX, startY, searchRadius){
+ const maxNear = Math.max(200, searchRadius * 1.5);
+ let points = [];
+ let foodScore;
+
+ if(member.diet === "frugivore"){
+  const prefs = Array.isArray(member.fruitPref) && member.fruitPref.length ? member.fruitPref : [3];
+  const preferredFruits = fruits.filter(f => prefs.includes(f.b));
+  if(preferredFruits.length){
+   points = preferredFruits.map(f => ({x:f.x, y:f.y}));
+   foodScore = (x,y) => {
+    let n = 0;
+    for(const f of preferredFruits) if(Math.hypot(f.x-x, f.y-y) < 100) n++;
+    return n;
+   };
+  }else{
+   for(let i=0;i<fruitCells.length;i++){
+    const cell=fruitCells[i];
+    if(prefs.includes(biome[cell])) points.push({x:(cell%GW+.5)*CELL,y:(Math.floor(cell/GW)+.5)*CELL});
+   }
+   foodScore = (x,y) => {
+    let n=0;const cx=x/CELL|0,cy=y/CELL|0;
+    for(let yy=Math.max(0,cy-4);yy<=Math.min(GH-1,cy+4);yy++)
+     for(let xx=Math.max(0,cx-4);xx<=Math.min(GW-1,cx+4);xx++)
+      if(prefs.includes(biome[yy*GW+xx])) n++;
+    return n;
+   };
+  }
+ }else if(member.diet === "herbivore"){
+  const gp=GRASS_BIOMES.includes(member.grassPref)?member.grassPref:2;
+  for(const i of grassCells) if(biome[i]===gp && grass[i] > .1) points.push({x:(i%GW+.5)*CELL,y:(Math.floor(i/GW)+.5)*CELL});
+  foodScore = (x,y) => {
+   let total=0;const cx=x/CELL|0,cy=y/CELL|0;
+   for(let yy=Math.max(0,cy-3);yy<=Math.min(GH-1,cy+3);yy++)
+    for(let xx=Math.max(0,cx-3);xx<=Math.min(GW-1,cx+3);xx++) total+=grass[yy*GW+xx];
+   return total;
+  };
+ }else if(member.diet === "scavenger"){
+  const meat = corpses.filter(k => k.meat > .5);
+  points = meat.map(k => ({x: k.x, y: k.y}));
+  foodScore = (x,y) => {
+   let n=0;
+   for(const k of meat) if(Math.hypot(k.x-x, k.y-y) < 140) n += Math.min(3, k.meat/50);
+   return n;
+  };
+ }else{
+  const minSize=member.size*env.huntMin,maxSize=member.size*env.huntMax,maxSpeed=member._huntSpeed;
+  const canHuntCarn=!!env.huntCarnivore;
+  const prey=pop.filter(o=>!o.dead&&o.h!==member.h&&(canHuntCarn||o.diet!=="carnivore")&&((o.diet===member.carnDietPref&&getCreatureBiome(o)===member.carnBiomePref)||(o.diet==="scavenger"&&env.huntScavenger))&&o.size>=minSize&&o.size<=maxSize&&o.s.speed<=maxSpeed);
+  const meat=corpses.filter(k=>k.meat>.5 && ((k.diet===member.carnDietPref && k.biome===member.carnBiomePref)||(k.diet==="scavenger"&&env.eatScavCorpse)));
+  points=prey.map(o=>({x:o.x,y:o.y})).concat(meat.map(k=>({x:k.x,y:k.y})));
+  foodScore=(x,y)=>{
+   let n=0;
+   for(const o of prey) if(Math.hypot(o.x-x,o.y-y)<140) n++;
+   for(const k of meat) if(Math.hypot(k.x-x,k.y-y)<140) n+=Math.min(3,k.meat/50);
+   return n;
+  };
+ }
+
+ if(!points.length){
+  if(member.diet==="carnivore") return bestBiome(member.carnBiomePref);
+  return [startX,startY];
+ }
+ let candidates=points.filter(p=>Math.hypot(p.x-startX,p.y-startY)<=maxNear);
+ if(!candidates.length){
+  candidates=points.slice().sort((a,b)=>Math.hypot(a.x-startX,a.y-startY)-Math.hypot(b.x-startX,b.y-startY)).slice(0,Math.min(160,points.length));
+ }
+ if(candidates.length>100){
+  const sample=[];
+  for(let i=0;i<100;i++) sample.push(candidates[rnd()*candidates.length|0]);
+  candidates=sample;
+ }
+ let best=null,bestScore=-1;
+ for(const p of candidates){
+  if(cellAt(p.x,p.y)<2) continue;
+  if(member.diet==="herbivore" && cellAt(p.x,p.y)!==(GRASS_BIOMES.includes(member.grassPref)?member.grassPref:2)) continue;
+  const distance=Math.hypot(p.x-startX,p.y-startY);
+  const score=foodScore(p.x,p.y)/(1+distance/Math.max(100,maxNear));
+  if(score>bestScore){bestScore=score;best=p;}
+ }
+ return best?[best.x,best.y]:[startX,startY];
+}
+
+function disperseHerd(h, members, leaveCount){
+ const shuffled = members.slice().sort(() => rnd() - 0.5);
+ const departing = shuffled.slice(0, leaveCount);
+ const base = departing[rnd() * departing.length | 0];
+
+ let bestX = 0, bestY = 0;
+ for(const c of departing) { bestX += c.x; bestY += c.y; }
+ bestX /= departing.length; bestY /= departing.length;
+
+ for(let tryK = 0; tryK < 30; tryK++){
+  const ang = rnd() * 6.283;
+  const dist = h.rad * (1.1 + rnd() * 0.8);
+  const tx = clamp(h.cx + Math.cos(ang) * dist, CELL*2, WW - CELL*2);
+  const ty = clamp(h.cy + Math.sin(ang) * dist, CELL*2, WH - CELL*2);
+  if(cellAt(tx, ty) >= 2){
+   bestX = tx; bestY = ty;
+   break;
+  }
+ }
+
+ [bestX,bestY] = findFoodCenter(base, bestX, bestY, h.rad);
+ const vegName = BIOMES[cellAt(bestX, bestY)][0];
+ const foodName = base.diet === "carnivore" ? carnPrefName(base.carnBiomePref, base.carnDietPref) : base.diet === "scavenger" ? "死体" : base.diet === "herbivore" ? `${grassPrefName(base.grassPref??base.h.grassPref)}の草` : ((base.fruitPref||[3]).map(b=>BIOMES[b][0]).join("・") + "果実");
+ 
+ let totalSize = 0;
+ for(const c of departing) totalSize += c.s.size;
+ const avgSize = (totalSize / departing.length).toFixed(1);
+
+ const newName = `${vegName}・${foodName}・${avgSize}`;
+ const baseBiome = base.diet === "carnivore" ? (base.carnBiomePref ?? base.h.carnBiomePref ?? 2) : base.diet === "frugivore" ? ((base.fruitPref && base.fruitPref[0]) ?? (base.h.fruitPref && base.h.fruitPref[0]) ?? 3) : (base.grassPref ?? base.h.grassPref ?? 2);
+ const newH = addHerd(newName, { ...base.s, size: +avgSize }, baseBiome, base.diet);
+ newH.cx = bestX; newH.cy = bestY;
+ newH.rad = clamp(Math.round((h.rad * (0.8 + rnd() * 0.4) + (rnd() - 0.5) * 20) / 5) * 5, 10, 300);
+ newH.hungry = h.hungry;
+ newH.birthAt = h.birthAt; newH.birthCost = h.birthCost;
+ newH.hmul = h.hmul;
+ newH.diet = base.diet;
+ newH.fruitPref = [...(base.fruitPref || [3])];
+ newH.grassPref = base.grassPref??base.h.grassPref??2;
+ newH.carnBiomePref = base.carnBiomePref??base.h.carnBiomePref??2;
+ newH.carnDietPref = base.carnDietPref??base.h.carnDietPref??"herbivore";
+
+ for(const c of departing) {
+  c.h = newH;
+  c.gen = 1;
+  c.mode = 0;
+  c.tgt = null;
+  c.wa = Math.atan2(bestY - c.y, bestX - c.x);
+  birthFx(c.x, c.y);
+ }
+ sfx("birth");
+ toast(`🕊️ ${departing.length}匹が巣立ち、新群れ「${newH.name}」を結成！`);
+ renderPanel();
+}
+
+const snd={hit:true,birth:true,ext:true};
+const SNDN={hit:"狩り成功",birth:"出産",ext:"絶滅"};
+try{Object.assign(snd,JSON.parse(localStorage.getItem("evo_snd")||"{}"))}catch(e){}
+let ac=null;const lastS={};
+document.addEventListener("pointerdown",()=>{try{if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")ac.resume()}catch(e){}});
+function tone(f0,f1,dur,type,vol,delay){const t0=ac.currentTime+(delay||0),o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(f1,t0+dur);g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);o.connect(g);g.connect(ac.destination);o.start(t0);o.stop(t0+dur+.02)}
+function sfx(k){
+ if(!snd[k]||!ac||ac.state!=="running")return;const n=performance.now();if(n-(lastS[k]||0)<90)return;lastS[k]=n;
+ if(k==="hit"){tone(220,50,.22,"square",.12);tone(900,200,.08,"sawtooth",.06)}
+ else if(k==="birth"){tone(523,523,.12,"sine",.12);tone(659,659,.12,"sine",.12,.1);tone(784,784,.2,"sine",.12,.2)}
+ else if(k==="ext")tone(420,70,.9,"sawtooth",.12)}
+function burst(x,y,col,n,v0){for(let i=0;i<n;i++){const a=rnd()*6.283,v=v0*(.4+rnd());fx.push({type:"p",x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,r:2+rnd()*2.5,col,t:0,life:.5+rnd()*.3})}}
+function ring(x,y,r,grow,col,life){fx.push({type:"r",x,y,r,grow,col,w:2.5,t:0,life})}
+function hitFx(t){sfx("hit");if(fx.length>300)return;burst(t.x,t.y,"#d62828",6,70);burst(t.x,t.y,t.h.color,4,50);ring(t.x,t.y,t.size,22,"#fff",.45)}
+function counterFx(x,y){sfx("hit");if(fx.length>300)return;burst(x,y,"#ffd32a",5,55);ring(x,y,10,18,"#ffd32a",.35)}
+function birthFx(x,y){sfx("birth");if(fx.length>300)return;ring(x,y,6,28,"#ff8fc8",.7);burst(x,y,"#ffd6ec",5,35);
+ for(let i=0;i<2;i++)fx.push({type:"h",x,y,vx:(rnd()-.5)*20,vy:-25-rnd()*15,r:4+rnd()*2,col:"#ff5fa2",t:0,life:1})}
+
+function determineChildDiet(a, b){
+ let d = rnd() < 0.5 ? a.diet : b.diet;
+ if(!DIETN[d]) d = "herbivore";
+ let mutated = false;
+ if(rnd() < (env.dietMut ?? 0.01)){
+  const others = Object.keys(DIETN).filter(k => k !== d && (env.enableScavenger || k !== "scavenger"));
+  if (others.length > 0) {
+    d = others[rnd() * others.length | 0];
+    toast(`🧬 突然変異！ 【${DIETN[d]}】への変異が発生しました！`);
+    sfx("birth");
+    mutated = true;
+  }
+ }
+ return {d, mutated};
+}
+
+function determineChildFruitPref(a, b){
+ const pA = Array.isArray(a.fruitPref) && a.fruitPref.length ? a.fruitPref : [3];
+ const pB = Array.isArray(b.fruitPref) && b.fruitPref.length ? b.fruitPref : [3];
+ let pref = rnd() < 0.5 ? [...pA] : [...pB];
+ const validFruitBiomes = BIOMES.map((bm, idx) => bm[2] > 0 ? idx : -1).filter(idx => idx >= 0);
+ let mutated = false;
+ if(rnd() < (env.fruitMut ?? 0.01)){
+  const cur = pref[0] ?? 3;
+  const others = validFruitBiomes.filter(bmId => bmId !== cur);
+  if(others.length > 0){
+   const nextB = others[rnd() * others.length | 0];
+   pref = [nextB];
+   toast(`🍎 果物の好みが突然変異！【${BIOMES[nextB][0]}の果実】を好む性質に変異！`);
+   sfx("birth");
+   mutated = true;
+  }
+ }
+ return {pref, mutated};
+}
+
+function determineChildGrassPref(a,b){
+ let pref=rnd()<0.5?(a.grassPref??a.h.grassPref):(b.grassPref??b.h.grassPref);
+ if(!GRASS_BIOMES.includes(pref))pref=2;
+ let mutated = false;
+ if(rnd()<(env.fruitMut??0.01)){
+  const others=GRASS_BIOMES.filter(id=>id!==pref);
+  if (others.length > 0) {
+    pref=others[rnd()*others.length|0];
+    toast(`🌿 草の好みが突然変異！【${grassPrefName(pref)}】を好む性質に変異！`);
+    sfx("birth");
+    mutated = true;
+  }
+ }
+ return {pref, mutated};
+}
+
+function determineChildCarnPref(a, b, isDietMutatedToCarn){
+ let bPref = rnd()<0.5 ? (a.carnBiomePref??a.h.carnBiomePref??2) : (b.carnBiomePref??b.h.carnBiomePref??2);
+ let dPref = rnd()<0.5 ? (a.carnDietPref??a.h.carnDietPref??"herbivore") : (b.carnDietPref??b.h.carnDietPref??"herbivore");
+ let mutated = false;
+ if(isDietMutatedToCarn){
+  const pick = CARN_PREFS[rnd()*CARN_PREFS.length|0];
+  bPref = pick.b; dPref = pick.d;
+  mutated = true;
+ } else if(rnd() < (env.fruitMut??0.01)){
+  const pick = CARN_PREFS[rnd()*CARN_PREFS.length|0];
+  bPref = pick.b; dPref = pick.d;
+  toast(`🥩 狩りの好みが突然変異！【${carnPrefName(bPref, dPref)}】を好む肉食獣が誕生！`);
+  sfx("birth");
+  mutated = true;
+ }
+ return {bPref, dPref, mutated};
+}
+
+function determineChildPersonality(a, b, diet){
+ let p = rnd() < 0.5 ? (a.personality||"solitary") : (b.personality||"solitary");
+ if(!env.enablePersonality) return {personality:"solitary", mutated:false};
+ let mutated = false;
+ if(rnd() < (env.personalityMut ?? 0.05)){
+  const opts = ["solitary", "social", "sharing"];
+  const others = opts.filter(x => x !== p);
+  if(others.length > 0){
+   p = others[rnd() * others.length | 0];
+   mutated = true;
+   toast(`🧠 性格が突然変異！【${P_NAME[p]}】に変異！双子が別々の群れで誕生します`);
+   sfx("birth");
+  }
+ }
+ return {personality:p, mutated};
+}
+
+function createMutantHerd(a, b, diet, fruitPref, grassPref, carnBiomePref, carnDietPref){
+  let newCx = CELL*2, newCy = CELL*2;
+  if (diet === "carnivore") {
+    const bPos = bestBiome(carnBiomePref);
+    newCx = bPos[0]; newCy = bPos[1];
+  } else {
+    let found = false;
+    for(let tryK=0; tryK<200; tryK++){
+      const nx = CELL*2 + rnd()*(WW-CELL*4);
+      const ny = CELL*2 + rnd()*(WH-CELL*4);
+      if(cellAt(nx, ny) < 2) continue;
+      let ok = true;
+      for(const g of herds){
+        if(Math.hypot(g.cx - nx, g.cy - ny) < g.rad + DEF_RAD){ ok = false; break; }
+      }
+      if(ok){ newCx = nx; newCy = ny; found = true; break; }
+    }
+    if(!found){ const bPos = bestBiome(grassPref); newCx = bPos[0]; newCy = bPos[1]; }
+  }
+  const avgSize = ((a.s.size + b.s.size)/2).toFixed(1);
+  const dietName = DIETN[diet] ? DIETN[diet].replace("動物","") : "不明";
+  let bId = cellAt(newCx, newCy);
+  if (diet === "herbivore") bId = grassPref;
+  else if (diet === "frugivore") bId = fruitPref[0] ?? 3;
+  else if (diet === "carnivore") bId = carnBiomePref;
+  const biomeName = BIOMES[bId] ? BIOMES[bId][0] : "不明";
+  let newName = `${dietName}・${biomeName}・${avgSize}`;
+  if (diet === "carnivore") {
+    const prefBName = BIOMES[carnBiomePref] ? BIOMES[carnBiomePref][0] : "";
+    const prefDName = DIETN[carnDietPref] ? DIETN[carnDietPref].slice(0, 2) : "";
+    newName += `(${prefBName}${prefDName})`;
+  }
+  const newH = addHerd(newName, { ...a.s, size: +avgSize }, bId, diet); 
+  newH.cx = newCx; newH.cy = newCy;
+  newH.rad = clamp(Math.round((a.h.rad * (0.8 + rnd() * 0.4) + (rnd() - 0.5) * 20) / 5) * 5, 10, 300);
+  newH.hungry = a.h.hungry; newH.birthAt = a.h.birthAt; newH.birthCost = a.h.birthCost; newH.hmul = a.h.hmul;
+  newH.diet = diet; newH.fruitPref = [...fruitPref]; newH.grassPref = grassPref; newH.carnBiomePref = carnBiomePref; newH.carnDietPref = carnDietPref;
+  return newH;
+}
+
+function mate(a,b,born){
+ const dRes = determineChildDiet(a, b);
+ const fRes = determineChildFruitPref(a, b);
+ const gRes = determineChildGrassPref(a, b);
+ const childDiet = dRes.d;
+ const childFruitPref = fRes.pref;
+ const childGrassPref = gRes.pref;
+ const isDietToCarn = dRes.mutated && childDiet === "carnivore";
+ const cRes = determineChildCarnPref(a, b, isDietToCarn);
+ const childCarnBiomePref = cRes.bPref;
+ const childCarnDietPref = cRes.dPref;
+ const pRes = determineChildPersonality(a, b, childDiet);
+ const childPersonality = pRes.personality;
+ const isMutated = dRes.mutated || fRes.mutated || gRes.mutated || cRes.mutated || pRes.mutated;
+
+ for(const p of[a,b]){p.hun=Math.max(1,p.hun-p.h.birthCost*maxH(p));p.cdT=p.s.cd*(p.s.size/REF_SIZE)*env.cdm;}
+ if(pop.length+born.length>=env.maxpop)return;
+
+ let targetHerd = a.h;
+ const parentLitter = rnd() < 0.5 ? a.s.litterSize : b.s.litterSize;
+ let litter = pRes.mutated ? 2 : Math.round(parentLitter);
+ let targetHerds = [];
+
+ if(pRes.mutated){
+  for(let i=0;i<2;i++){
+   const twinHerd = createMutantHerd(a,b,childDiet,childFruitPref,childGrassPref,childCarnBiomePref,childCarnDietPref);
+   twinHerd.name += `・性格変異${i+1}`;
+   targetHerds.push(twinHerd);
+  }
+ } else if(isMutated){
+  targetHerd = createMutantHerd(a,b,childDiet,childFruitPref,childGrassPref,childCarnBiomePref,childCarnDietPref);
+  targetHerds = Array(litter).fill(targetHerd);
+ } else {
+  if(herdCountInRange(targetHerd,born)>=env.herdCap)return;
+  targetHerds = Array(litter).fill(targetHerd);
+ }
+
+ const initialRatio = 1.1 - litter * 0.1;
+ for(let i=0; i<litter; i++){
+  if(pop.length+born.length>=env.maxpop)break;
+  const destinationHerd = targetHerds[i] || targetHerd;
+  if(!pRes.mutated && herdCountInRange(destinationHerd,born)>=env.herdCap)break;
+  const cs={};for(const k in SR){
+    if(k==="litterSize") continue;
+    const[lo,hi]=SR[k];
+    cs[k]=clamp((a.s[k]+b.s[k])/2+(rnd()-.5)*2*env.mut*(hi-lo)*.5,lo,hi);
+  }
+  cs.size=clamp(cs.size,env.sizeMin,env.sizeMax);
+  let baseLitterSize = rnd() < 0.5 ? a.s.litterSize : b.s.litterSize;
+  let mutLitter = Math.floor(rnd() * 3) - 1;
+  cs.litterSize = clamp(baseLitterSize + mutLitter, 1, 10);
+  let x, y;
+  if(isMutated){
+   x = destinationHerd.cx + (rnd()-.5)*20;
+   y = destinationHerd.cy + (rnd()-.5)*20;
+  } else {
+   x = (a.x+b.x)/2+(rnd()-.5)*12;
+   y = (a.y+b.y)/2+(rnd()-.5)*12;
+  }
+  const k=mk(destinationHerd,x,y,cs,null,childDiet,childFruitPref,childGrassPref,true,0,
+    childCarnBiomePref,childCarnDietPref,initialRatio,childPersonality);
+  k.gen=isMutated ? 1 : Math.max(a.gen,b.gen)+1;
+  born.push(k);
+ }
+ if(isMutated){
+  for(const h of targetHerds)birthFx(h.cx,h.cy);
+ } else {
+  birthFx((a.x+b.x)/2,(a.y+b.y)/2);
+ }
+}
+
+function updateFx(dt){let j=0;for(const e of fx){e.t+=dt;if(e.t<e.life)fx[j++]=e}fx.length=j}
+function step(dt){
+ T+=dt;updateFruits(dt);updateGrass(dt);updateCorpses(dt);updateFx(dt);checkBudding(dt);const born=[];
+ buildGrids();
+
+ herdMembers.clear();
+ for (const h of herds) {
+   if (h.huntCd > 0) h.huntCd = Math.max(0, h.huntCd - dt);
+   herdMembers.set(h.id, []);
+ }
+ for (const c of pop) {
+   if (!c.dead) {
+     const list = herdMembers.get(c.h.id);
+     if (list) list.push(c);
+   }
+ }
+ for (const h of herds) {
+   const members = herdMembers.get(h.id) || [];
+   let leader = null, hasHungry = false;
+   for (const m of members) {
+     if (m.isLeader) leader = m;
+     if (m.hun <= maxH(m) * 0.2) hasHungry = true;
+   }
+   if (members.length > 0 && (!leader || leader.dead)) {
+     if (leader) leader.isLeader = false;
+     leader = members[0];
+     leader.isLeader = true;
+   }
+   h.leader = leader;
+   h.hasHungryMember = hasHungry;
+ }
+
+ for(const c of pop)if(!c.dead)updateCreature(c,dt,born);
+ for(const c of pop)if(c.dead && c.leaveCorpse)spawnCorpse(c);
+ pop=pop.filter(c=>!c.dead).concat(born);
+ 
+ if(selC&&selC.dead)selC=pop.find(c=>c.h===selC.h)||null;
+}
+
+function draw(){
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=BIOMES[0][1];ctx.fillRect(0,0,cw,ch);clampCam();
+ ctx.setTransform(dpr*z,0,0,dpr*z,dpr*ox,dpr*oy);ctx.drawImage(mapCv,0,0);
+ ctx.imageSmoothingEnabled=false;ctx.drawImage(grassCv,0,0,WW,WH);ctx.imageSmoothingEnabled=true;
+
+ for(const f of fruits){ctx.fillStyle=BIOMES[f.b][4];ctx.beginPath();ctx.arc(f.x|0,f.y|0,3,0,6.283);ctx.fill()}
+ for(const k of corpses){
+  const r=k.size*Math.max(.2,Math.sqrt(k.meat/k.meat0));
+  ctx.strokeStyle="rgba(0,0,0,.45)";ctx.lineWidth=1.2/z;
+  ctx.fillStyle=k.pale;ctx.beginPath();ctx.arc(k.x|0,k.y|0,r,0,6.283);ctx.fill();
+  if(z >= 0.8) ctx.stroke();
+  const er=Math.min(r*.4,Math.max(1,r*(.14+.3*(k.vis-30)/220)*1.1));
+  if(z >= 0.8) {
+   ctx.strokeStyle="#222";ctx.lineWidth=1.3/z;
+   for(const sd of[-1,1]){const ea=k.ang+sd*.7,ex=k.x+Math.cos(ea)*r*.62,ey=k.y+Math.sin(ea)*r*.62;
+    ctx.beginPath();ctx.moveTo((ex-er)|0,(ey-er)|0);ctx.lineTo((ex+er)|0,(ey+er)|0);ctx.moveTo((ex+er)|0,(ey-er)|0);ctx.lineTo((ex-er)|0,(ey+er)|0);ctx.stroke()}
+  }
+ }
+ for(const h of herds){
+  ctx.strokeStyle=h.color;ctx.lineWidth=(h===sel?3:1.5)/z;ctx.setLineDash([6/z,4/z]);
+  ctx.beginPath();ctx.arc(h.cx|0,h.cy|0,12,0,6.283);ctx.stroke();ctx.setLineDash([]);
+  ctx.globalAlpha=h===sel?.7:.25;ctx.setLineDash([10/z,8/z]);ctx.beginPath();ctx.arc(h.cx|0,h.cy|0,h.rad,0,6.283);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+ }
+ ctx.strokeStyle="#808080";ctx.lineWidth=1.2/z;
+ for(const c of pop){
+  const r=c.size,a=c.ang;let px=c.x,py=c.y;
+  if(c.lunge>0){const k=Math.sin(c.lunge/.25*Math.PI)*r*.7;px+=Math.cos(c.la)*k;py+=Math.sin(c.la)*k}
+  
+  ctx.fillStyle=c.h.color;ctx.beginPath();ctx.arc(px|0,py|0,r,0,6.283);ctx.fill();
+  
+  if (z >= 0.8) {
+   ctx.stroke();
+   const er=r*(.14+.3*(c.s.vision-30)/220);
+   for(const sd of[-1,1]){
+    const ea=a+sd*.7,ex=px+Math.cos(ea)*r*.62,ey=py+Math.sin(ea)*r*.62;
+    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(ex|0,ey|0,er,0,6.283);ctx.fill();
+    ctx.fillStyle= c.diet==="scavenger" ? "#2ecc71" : (c.diet==="carnivore" ? "#d63031" : "#111");
+    ctx.beginPath();ctx.arc((ex+Math.cos(a)*er*.3)|0,(ey+Math.sin(a)*er*.3)|0,er*.55,0,6.283);ctx.fill();
+   }
+  }
+ }
+ for(const e of fx){const k=e.t/e.life;ctx.globalAlpha=1-k;
+  if(e.type==="p"){ctx.fillStyle=e.col;ctx.beginPath();ctx.arc((e.x+e.vx*e.t)|0,(e.y+e.vy*e.t)|0,e.r*(1-k*.5),0,6.283);ctx.fill()}
+  else if(e.type==="h"){ctx.font=(e.r*3)+"px sans-serif";ctx.textAlign="center";ctx.fillStyle=e.col;ctx.fillText("♥",(e.x+e.vx*e.t)|0,(e.y+e.vy*e.t)|0)}
+  else{ctx.strokeStyle=e.col;ctx.lineWidth=e.w/z;ctx.beginPath();ctx.arc(e.x|0,e.y|0,e.r+e.grow*k,0,6.283);ctx.stroke()}
+ }
+ ctx.globalAlpha=1;
+ if(selC){ctx.strokeStyle="#fff";ctx.lineWidth=2/z;ctx.beginPath();ctx.arc(selC.x|0,selC.y|0,selC.size+4,0,6.283);ctx.stroke();
+  ctx.setLineDash([4/z,4/z]);ctx.beginPath();ctx.arc(selC.x|0,selC.y|0,selC.s.vision,0,6.283);ctx.stroke();ctx.setLineDash([])}
+}
+
+function clampCam(){
+  if(WW*z<=cw)ox=(cw-WW*z)/2;else ox=clamp(ox,cw-WW*z,0);
+  if(WH*z<=ch)oy=(ch-WH*z)/2;else oy=clamp(oy,ch-WH*z,0);
+}
+function fit(){z=Math.min(cw/WW,ch/WH)||1;ox=(cw-WW*z)/2;oy=(ch-WH*z)/2;clampCam()}
+function zoomAt(sx,sy,k){const nz=clamp(z*k,.3,6);k=nz/z;ox=sx-(sx-ox)*k;oy=sy-(sy-oy)*k;z=nz;clampCam()}
+function updateCamera(){
+  if(selC && !selC.dead && ptr.size === 0){
+    const tx = cw / 2 - selC.x * z;
+    const ty = ch / 2 - selC.y * z;
+    ox += (tx - ox) * 0.15;
+    oy += (ty - oy) * 0.15;
+    clampCam();
+  }
+}
+
+const ptr=new Map();let moved=0;
+cv.addEventListener("pointerdown",e=>{cv.setPointerCapture(e.pointerId);ptr.set(e.pointerId,{x:e.offsetX,y:e.offsetY});moved=0});
+cv.addEventListener("pointermove",e=>{
+ const p=ptr.get(e.pointerId);if(!p)return;const nx=e.offsetX,ny=e.offsetY;
+ if(ptr.size===1){ox+=nx-p.x;oy+=ny-p.y;clampCam();moved+=Math.abs(nx-p.x)+Math.abs(ny-p.y)}
+ else if(ptr.size===2){const q=[...ptr.entries()].find(([id])=>id!==e.pointerId)[1];
+  const d0=Math.hypot(p.x-q.x,p.y-q.y)||1,d1=Math.hypot(nx-q.x,ny-q.y);zoomAt((nx+q.x)/2,(ny+q.y)/2,d1/d0);moved=99}
+ p.x=nx;p.y=ny});
+
+cv.addEventListener("pointerup",e=>{
+ if(ptr.size===1 && moved>12 && selC){selC=null;updateCounts()}else if(ptr.size===1 && moved<6){tap(e.offsetX,e.offsetY)}
+ ptr.delete(e.pointerId);
+});
+cv.addEventListener("pointercancel",e=>ptr.delete(e.pointerId));
+cv.addEventListener("wheel",e=>{e.preventDefault();zoomAt(e.offsetX,e.offsetY,e.deltaY<0?1.15:1/1.15)},{passive:false});
+
+function tap(sx,sy){
+ const wx=(sx-ox)/z,wy=(sy-oy)/z;
+ if(placing&&sel){sel.cx=clamp(wx,0,WW-1);sel.cy=clamp(wy,0,WH-1);placing=false;toast("群れの中心を移動しました");return}
+ let best=null,bd=1e9;for(const c of pop){const d=Math.hypot(c.x-wx,c.y-wy)-c.size;if(d<bd){bd=d;best=c}}
+ selC=bd<14/z?best:null;
+ if(selC){sel=selC.h;renderPanel()}
+ updateCounts();
+}
+
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,2400)}
+function resize(){const r=wrap.getBoundingClientRect();dpr=window.devicePixelRatio||1;cw=r.width;ch=r.height;cv.width=cw*dpr;cv.height=ch*dpr;if(!fitted&&cw>0){fit();fitted=true}}
+new ResizeObserver(resize).observe(wrap);
+
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+let showDetail=false,armed=null,armT;
+const U={cd:DAY,life:DAY,corpseLife:DAY},dv=(k,v)=>{if(k==="huntSuccess"||k==="buddingRate"||k==="dietMut"||k==="fruitMut"||k==="personalityMut")return k==="huntSuccess"?v+"%":(v*100).toFixed(1)+"%";return U[k]?+(v/U[k]).toFixed(2):v};
+function twice(key,btn,label,fn){
+ if(armed===key){armed=null;clearTimeout(armT);fn()}
+ else{armed=key;btn.textContent=label;toast(label);clearTimeout(armT);armT=setTimeout(()=>{armed=null;renderPanel()},3000)}}
+function resetAll(){
+ Object.assign(env,{
+  rate:FRUIT_RATE,dens:1,life:100,nut:1,metab:1,mut:MUT,maxpop:MAXPOP,spd:1,cdm:1,huntMin:.4,huntMax:.8,huntNut:0.5,grassExtreme:1.5,fruitExtreme:1.5,huntHerdMin:0,
+  maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,preyEBase:80,massExp:3.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,huntSuccess:100,
+  budding:false, buddingRate:0.10, dietMut:0.05, fruitMut:0.05, autoDelExtinct:true, enableScavenger:false, ...ENV_NEW
+ });
+ speed=1;placing=false;document.querySelectorAll("[data-sp]").forEach(x=>x.classList.toggle("on",x.dataset.sp==="1"));
+ newWorld(rnd()*1e6|0);toast("新しい世界を作りました")}
+function resetSameWorld(){
+ Object.assign(env,{
+  rate:FRUIT_RATE,dens:1,life:100,nut:1,metab:1,mut:MUT,maxpop:MAXPOP,spd:1,cdm:1,huntMin:.4,huntMax:.8,huntNut:0.5,grassExtreme:1.5,fruitExtreme:1.5,huntHerdMin:0,
+  maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,preyEBase:80,massExp:3.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,huntSuccess:100,
+  budding:false, buddingRate:0.10, dietMut:0.05, fruitMut:0.05, autoDelExtinct:true, enableScavenger:false, ...ENV_NEW
+ });
+ speed=1;placing=false;document.querySelectorAll("[data-sp]").forEach(x=>x.classList.toggle("on",x.dataset.sp==="1"));
+ newWorld(seed);toast("設定をリセットし、同じ世界を作り直しました")}
+function keepSameWorld(){
+ speed=1;placing=false;document.querySelectorAll("[data-sp]").forEach(x=>x.classList.toggle("on",x.dataset.sp==="1"));
+ newWorld(seed);toast("設定を維持し、同じ世界を作り直しました")}
+
+const folded={"追尾中":false,"群れ一覧":false,"選択中の群れ":true,"草":true,"果物":true,"肉食動物":true,"性格システム":true,"全生物":true,"環境":true,"表示・群れ自動生成":true,"計算式":true};
+function foldify(){
+ for(const h of panel.querySelectorAll("h3")){
+  const w=document.createElement("div");let n=h.nextSibling;
+  while(n&&n.tagName!=="H3"){const nx=n.nextSibling;w.appendChild(n);n=nx}
+  h.after(w);const t=h.textContent;h.dataset.t=t;h.className="fold";
+  w.hidden=!!folded[t];h.textContent=(folded[t]?"▶ ":"▼ ")+t}}
+panel.addEventListener("click",e=>{const h=e.target.closest("h3.fold");if(!h)return;
+ const t=h.dataset.t,w=h.nextElementSibling;folded[t]=!folded[t];w.hidden=folded[t];h.textContent=(folded[t]?"▶ ":"▼ ")+t});
+function sl(TB,k,v,a){const[lo,hi,st,nm]=TB[k];return `<label>${nm}<output id="o_${a}_${k}">${dv(k,v)}</output><input type="range" data-${a}="${k}" min="${lo}" max="${hi}" step="${st}" value="${v}"></label>`}
+
+function renderHerdList() {
+ let h = "";
+ for(const g of herds) {
+  h+=`<div class="herd${g===sel?" on":""}" id="herdRow${g.id}" data-act="sel" data-id="${g.id}"><i style="background:${g.color}"></i><span class="herd-name">${esc(g.name)}</span><span id="n${g.id}"></span></div>`;
+ }
+ $("herdList").innerHTML = h;
+}
+panel.addEventListener("click", e => {
+ const b=e.target.closest("[data-act]");if(!b)return;
+ const a=b.dataset.act;
+ if(a==="sel"){
+  sel=herds.find(g=>g.id==b.dataset.id);
+  const list = pop.filter(c => c.h === sel && !c.dead);
+  if(list.length > 0) selC = list[rnd()*list.length|0];
+  renderPanel();updateCounts();
+ }
+});
+
+let renderPending=false;
+function renderPanel(){
+ if(panel.querySelector(".numedit")){renderPending=true;return}
+ let h=`<h3>群れ一覧</h3><div id="herdList"></div><h3>選択中の群れ</h3><button data-act="add" style="margin-top:6px">＋群れを作る</button>`;
+ if(sel){
+  h+=`<div style="margin-top:10px" class="row"><input type="text" data-f="name" value="${esc(sel.name)}"><input type="color" data-f="color" value="${sel.color}"></div>`;
+  for(const k of["size","vision","speed","litterSize"]){const[lo,hi,st,nm]=SR[k];h+=`<label>${nm}<output id="o_${k}">${dv(k,sel.st[k])}</output><input type="range" data-k="${k}" min="${lo}" max="${hi}" step="${st}" value="${sel.st[k]}"></label>`}
+  h+=`<button data-act="detail">${showDetail?"▲ 詳細を閉じる":"▼ 詳細（出産・群れ範囲など）"}</button>`;
+  if(showDetail){
+   for(const k of["cd"]){const[lo,hi,st,nm]=SR[k];h+=`<label>${nm}<output id="o_${k}">${dv(k,sel.st[k])}</output><input type="range" data-k="${k}" min="${lo}" max="${hi}" step="${st}" value="${sel.st[k]}"></label>`}
+   h+=`<div style="font-size:13px;font-weight:bold;margin-top:6px">群れの設定</div>`;
+    let dietOpts = `<option value="herbivore"${sel.diet==="herbivore"?" selected":""}>草食動物（草を食べる）</option><option value="frugivore"${sel.diet==="frugivore"?" selected":""}>果物動物（果物を食べる）</option>`;
+    if(env.enableScavenger || sel.diet==="scavenger") dietOpts += `<option value="scavenger"${sel.diet==="scavenger"?" selected":""}>腐肉動物（死体のみを食べる）</option>`;
+    dietOpts += `<option value="carnivore"${sel.diet==="carnivore"?" selected":""}>肉食動物（獲物・死体を食べる）</option>`;
+    h+=`<label>食性<select data-f="diet" style="display:block;width:100%;padding:6px;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:6px">${dietOpts}</select></label>`;
+    if(sel.diet==="herbivore"){
+     const gp=GRASS_BIOMES.includes(sel.grassPref)?sel.grassPref:2;
+     h+=`<label>好みの草<select data-f="grassPref" style="display:block;width:100%;padding:6px;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:6px">${GRASS_BIOMES.map(id=>`<option value="${id}"${gp===id?" selected":""}>${grassPrefName(id)}</option>`).join("")}</select></label><small>草食動物は選択したバイオームの草を優先して食べます。好みは子供に遺伝し、低確率で変異します。</small>`;
+    }
+    if(sel.diet==="frugivore"){const prefs=Array.isArray(sel.fruitPref)?sel.fruitPref:[sel.fruitPref??3];
+    let fruitCbs = BIOMES.map((b,i) => b[2]>0 ? `<label><input type="checkbox" data-fruit-pref="${i}"${prefs.includes(i)?" checked":""}> ${b[0]}</label>` : "").join("");
+    h+=`<div style="margin:7px 0"><b>好みの果物（複数選択可）</b><div class="row" style="gap:10px">${fruitCbs}</div><small>チェックした種類だけ食べます（果物を食べるのは果物動物だけです）。</small></div>`}
+    if(sel.diet==="carnivore"){
+     const cbp=sel.carnBiomePref??2, cdp=sel.carnDietPref??"herbivore";
+     const opts=CARN_PREFS.map(p=>`<option value="${p.b}_${p.d}"${cbp===p.b&&cdp===p.d?" selected":""}>${p.n}</option>`).join("");
+     h+=`<label>好みの獲物・死体（9種から選択）<select data-f="carnPref" style="display:block;width:100%;padding:6px;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:6px">${opts}</select></label><small>肉食動物は指定したバイオーム・食性の獲物および死体を狙って食べます。※腐肉動物を狩るか・腐肉動物の死体を食べるかは、下の「肉食動物」設定で切り替えられます。</small>`;
+    }
+    for(const k in HR)h+=sl(HR,k,sel[k],"p")}
+  h+=`<div class="row"><input type="number" id="cnt" value="2" min="1" max="100"><button data-act="rel">放つ</button><button data-act="move">中心を移動</button></div>
+  <div class="row"><button data-act="apply">既存個体へ反映</button><button data-act="kill">群れを全滅させる</button><button data-act="del">群れを消す</button></div>`;
+ }
+
+ h+=`<h3>草</h3>`;for(const k of["grassRate","grassMax","grassNut","grassExtreme","grassEat"])h+=sl(ER,k,env[k],"e");
+ h+=`<h3>果物</h3>`;for(const k of["rate","dens","life","nut","fruitExtreme"])h+=sl(ER,k,env[k],"e");
+
+ h+=`<h3>肉食動物</h3>`;
+ h+=`<label style="margin:4px 0 6px"><input type="checkbox" data-e="huntCarnivore"${env.huntCarnivore?" checked":""}> 肉食動物同士の捕食（共食い）</label>`;
+ h+=`<label style="margin:4px 0 6px"><input type="checkbox" data-e="huntScavenger"${env.huntScavenger?" checked":""}> 腐肉動物を狩る</label>`;
+ h+=`<label style="margin:4px 0 6px"><input type="checkbox" data-e="eatScavCorpse"${env.eatScavCorpse?" checked":""}> 腐肉動物の死体を食べる</label>`;
+ h+=`<label style="margin:4px 0 6px"><input type="checkbox" data-e="huntLeaveCorpse"${env.huntLeaveCorpse?" checked":""}> 狩りをしたときに死体になる</label>`;
+ h+=sl(ER,"huntHerdMin",env.huntHerdMin,"e");h+=sl(ER,"huntHerdCd",env.huntHerdCd,"e");
+ for(const k of["huntSuccess","huntCd","huntMin","huntMax","huntNut","preyEBase","huntSizeBonus"])h+=sl(ER,k,env[k],"e");
+ 
+ h+=`<h3>性格システム</h3>`;
+ h+=`<label style="margin:4px 0 6px"><input type="checkbox" data-e="enablePersonality"${env.enablePersonality?" checked":""}> 性格を有効化 (全食性)</label>`;
+ h+=`<label>突然変異率<output id="o_e_personalityMut">${(env.personalityMut*100).toFixed(1)}%</output><input type="range" data-e="personalityMut" min="${ER.personalityMut[0]}" max="${ER.personalityMut[1]}" step="${ER.personalityMut[2]}" value="${env.personalityMut}"></label>`;
+
+ h+=`<h3>全生物</h3>`;
+ h+=`<label style="margin:4px 0 6px"><input type="checkbox" data-e="autoDelExtinct"${env.autoDelExtinct?" checked":""}> 絶滅した群れを自動削除</label>`;
+ h+=`<label style="margin:4px 0 6px"><input type="checkbox" data-e="enableScavenger"${env.enableScavenger?" checked":""}> 腐肉動物システムを有効化</label>`;
+ h+=`<label style="margin:4px 0 6px"><input type="checkbox" data-e="budding"${env.budding?" checked":""}> 巣立ちシステムを有効化</label>`;
+ h+=`<label>独立確率(60秒あたり)<output id="o_e_buddingRate">${(env.buddingRate*100).toFixed(1)}%</output><input type="range" data-e="buddingRate" min="${BUD_RANGE[0]}" max="${BUD_RANGE[1]}" step="0.001" value="${env.buddingRate}"></label>`;
+ for(const k of["metab","childHmul","spd","cdm","mut","maxpop","sizeMin","sizeMax","growthRate"])h+=sl(ER,k,env[k],"e");
+ 
+ h+=`<h3>環境</h3>`;for(const k of["lifespan","lifespanExp"])h+=sl(ER,k,env[k],"e");
+ h+=`<small style="font-size:11px;opacity:.8;display:block;margin-bottom:6px">寿命は体格4の個体を基準に計算します。指数がプラスなら大型ほど長生き、マイナスなら大型ほど短命になります。寿命で死亡した個体も死体として残ります。</small>`;
+ for(const k of["corpseMeat","corpseLife","corpseEat"])h+=sl(ER,k,env[k],"e");
+
+ h+=`<h3>表示・群れ自動生成</h3>`;
+ h+=`<label>マップの大きさ<select id="mapScaleSelect" style="display:block;width:100%;padding:6px;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:6px"><option value="1"${mapScale===1?" selected":""}>通常サイズ（現在のサイズ）</option><option value="2"${mapScale===2?" selected":""}>大きなマップ（縦横2倍・面積4倍）</option><option value="4"${mapScale===4?" selected":""}>巨大マップ（縦横4倍・面積16倍）</option></select></label><small style="font-size:11px;opacity:.8;display:block;margin:4px 0 8px">変更は「新しい世界」またはリセット時に反映されます。バイオームの模様の大きさと果物の初期量も面積に合わせて調整されます。</small>`;
+ for(const k of["colorSat","colorLit"])h+=sl(ER,k,env[k],"e");
+ h+=`<h3>計算式</h3>`;for(const k of["maxHBase","metabBase","moveCost","senseCost","massExp","bmrExp","moveMassExp","moveSpeedExp","herdCap","dietMut","fruitMut"])h+=sl(ER,k,env[k],"e");
+ h+=`<small style="font-size:11px;opacity:.8;display:block;margin:4px 0 8px">果物好み突然変異率は、果物の種類だけでなく、草食動物が好む草のバイオームや、肉食動物が好む獲物のバイオーム・食性が変異する確率にも適用されます。</small>`;
+
+ h+=`<h3>効果音</h3>`;h+=`<div class="row">`+Object.keys(SNDN).map(k=>`<label style="display:inline-block;margin-right:8px"><input type="checkbox" data-s="${k}"${snd[k]?" checked":""}> ${SNDN[k]}</label>`).join("")+`</div>`;
+ h+=`<h3>セーブロード</h3>`;for(let n=1;n<=3;n++)h+=`<div class="row"><span style="width:90px;font-size:12px">枠${n}：${localStorage.getItem("evo_meta_"+n)||"空き"}</span><button data-act="save" data-n="${n}">セーブ</button><button data-act="load" data-n="${n}">ロード</button></div>`;
+ h+=`<div class="row"><button data-act="new">🌍 新しい世界</button></div><div class="row"><button data-act="resetSame">🔄 リセットした同じ世界</button></div><div class="row"><button data-act="keepSame">✨ 設定を維持した同じ世界</button></div>`;
+
+ panel.innerHTML=h;foldify();renderHerdList();updateCounts();
+ panel.querySelectorAll("label output").forEach(o=>o.title="クリックして数値を直接入力");
+}
+
+panel.addEventListener("click",e=>{
+ const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act,n=b.dataset.n;
+ if(a==="detail"){showDetail=!showDetail;renderPanel()}
+ else if(a==="add"){sel=addHerd("",DEF,null,"herbivore");placing=true;renderPanel();toast("地図をタップして、新しい群れの中心を決めてください")}
+ else if(a==="rel"&&sel)release(sel,clamp(+$("cnt").value||1,1,100));
+ else if(a==="move"&&sel){placing=true;toast("地図をタップして中心を決めてください")}
+ else if(a==="apply"&&sel){
+  for(const c of pop)if(c.h===sel){
+   const ratio = c.size / c.s.size;
+   c.s={...sel.st};c.size = c.s.size * ratio;
+   c.diet=sel.diet;c.fruitPref=[...(Array.isArray(sel.fruitPref)?sel.fruitPref:[3])];c.grassPref=sel.grassPref;c.carnBiomePref=sel.carnBiomePref;c.carnDietPref=sel.carnDietPref;
+   updateCache(c);
+  }
+ }
+ else if(a==="kill"&&sel){
+  twice("kill",b,"もう一度押すとこの群れを全滅",()=>{for(const c of pop)if(c.h===sel)c.dead=true;sfx("ext");toast(`${sel.name}の全個体を全滅させました`);if(selC&&selC.h===sel)selC=null;updateCounts();});
+ }
+ else if(a==="del"&&sel)twice("del",b,"もう一度押すと群れを削除",()=>{pop=pop.filter(c=>c.h!==sel);herds=herds.filter(g=>g!==sel);sel=herds[0]||null;selC=null;renderPanel()});
+ else if(a==="save")save(n);else if(a==="load")load(n);
+ else if(a==="new")twice("new",b,"もう一度押すと新しい世界",resetAll);
+ else if(a==="resetSame")twice("resetSame",b,"もう一度押すとリセットした同じ世界",resetSameWorld);
+ else if(a==="keepSame")twice("keepSame",b,"もう一度押すと設定を維持した同じ世界",keepSameWorld);
+});
+
+panel.addEventListener("input",e=>{
+ const k=e.target.dataset.k,f=e.target.dataset.f,p=e.target.dataset.p,en=e.target.dataset.e;
+ if(en && e.target.type !== "checkbox"){
+  env[en]=+e.target.value;
+  if(en==="sizeMin"&&env.sizeMin>env.sizeMax){env.sizeMax=env.sizeMin;const r=panel.querySelector('[data-e="sizeMax"]');if(r)r.value=env.sizeMax;const q=$("o_e_sizeMax");if(q)q.textContent=env.sizeMax}
+  if(en==="sizeMax"&&env.sizeMax<env.sizeMin){env.sizeMin=env.sizeMax;const r=panel.querySelector('[data-e="sizeMin"]');if(r)r.value=env.sizeMin;const q=$("o_e_sizeMin");if(q)q.textContent=env.sizeMin}
+  const o=$("o_e_"+en);
+  if(o)o.textContent = (en==="buddingRate"||en==="dietMut"||en==="fruitMut"||en==="personalityMut") ? (env[en]*100).toFixed(1)+"%" : dv(en,e.target.value);
+  invalidateCaches();return;
+ }
+ if(!sel)return;
+ if(p){sel[p]=+e.target.value;$("o_p_"+p).textContent=e.target.value;return}
+ if(k){sel.st[k]=+e.target.value;$("o_"+k).textContent=dv(k,e.target.value)}
+ else if(f==="name")sel.name=e.target.value;else if(f==="color")sel.color=e.target.value;else if(f==="diet")sel.diet=e.target.value});
+
+panel.addEventListener("click",e=>{
+ const o=e.target.closest("output");if(!o||o.querySelector(".numedit"))return;
+ const sld=o.parentElement&&o.parentElement.querySelector('input[type="range"]');if(!sld)return;
+ e.preventDefault();
+ const key=sld.dataset.k||sld.dataset.p||sld.dataset.e;
+ const pct=!!sld.dataset.e&&(key==="buddingRate"||key==="dietMut"||key==="fruitMut"||key==="personalityMut");
+ const unit=pct?0.01:(U[key]||1);const old=o.textContent;
+ const inp=document.createElement("input");
+ inp.type="number";inp.className="numedit";inp.step="any";inp.inputMode="decimal";
+ inp.value=+(+sld.value/unit).toFixed(4);
+ o.textContent="";o.appendChild(inp);inp.focus();inp.select();
+ let done=false;
+ const finish=ok=>{
+  if(done)return;done=true;
+  const x=parseFloat(inp.value);
+  if(ok&&Number.isFinite(x))sld.value=clamp(x*unit,+sld.min,+sld.max);
+  o.textContent=old;sld.dispatchEvent(new Event("input",{bubbles:true}));
+  if(renderPending){renderPending=false;renderPanel()}
+ };
+ inp.addEventListener("keydown",ev=>{if(ev.key==="Enter")finish(true);else if(ev.key==="Escape")finish(false)});
+ inp.addEventListener("blur",()=>finish(true));
+});
+
+panel.addEventListener("change",e=>{
+ if(e.target.id==="mapScaleSelect"){mapScale=clamp(+e.target.value,1,4);toast("マップサイズを変更しました。新しい世界を作ると反映されます");return;}
+ if(e.target.dataset.e==="budding"){env.budding=e.target.checked;toast(env.budding ? "🕊️ 巣立ちシステムをオンにしました" : "巣立ちシステムをオフにしました");return;}
+ if(e.target.dataset.e==="autoDelExtinct"){env.autoDelExtinct=e.target.checked;toast(env.autoDelExtinct ? "🗑️ 絶滅群れの自動削除をオンにしました" : "絶滅群れの自動削除をオフにしました");updateCounts();return;}
+ if(e.target.dataset.e==="huntCarnivore"){env.huntCarnivore=e.target.checked;toast(env.huntCarnivore ? "⚔️ 肉食動物同士の捕食をオンにしました" : "肉食動物同士の捕食をオフにしました");return;}
+ if(e.target.dataset.e==="huntScavenger"){env.huntScavenger=e.target.checked;toast(env.huntScavenger ? "🦴 腐肉動物を狩るようにしました" : "腐肉動物を狩らないようにしました");return;}
+ if(e.target.dataset.e==="eatScavCorpse"){env.eatScavCorpse=e.target.checked;toast(env.eatScavCorpse ? "🍖 腐肉動物の死体を食べるようにしました" : "腐肉動物の死体を食べないようにしました");return;}
+ if(e.target.dataset.e==="huntLeaveCorpse"){env.huntLeaveCorpse=e.target.checked;toast(env.huntLeaveCorpse ? "💀 狩りをしたときに死体が残るようにしました" : "狩りをしたときに死体が残らないようにしました");return;}
+ if(e.target.dataset.e==="enableScavenger"){env.enableScavenger=e.target.checked;toast(env.enableScavenger ? "🍖 腐肉動物システムをオンにしました" : "腐肉動物システムをオフにしました");renderPanel();return;}
+ if(e.target.dataset.e==="enablePersonality"){env.enablePersonality=e.target.checked;toast(env.enablePersonality ? "🧠 性格システムをオンにしました" : "性格システムをオフにしました");return;}
+ const fp=e.target.dataset.fruitPref;
+ if(fp&&sel){const id=+fp;let prefs=Array.isArray(sel.fruitPref)?sel.fruitPref.slice():[sel.fruitPref??3];prefs=e.target.checked?[...new Set([...prefs,id])]:prefs.filter(v=>v!==id);sel.fruitPref=prefs;renderPanel();return}
+ const s=e.target.dataset.s;
+ if(s){snd[s]=e.target.checked;try{localStorage.setItem("evo_snd",JSON.stringify(snd))}catch(x){}if(snd[s])sfx(s)}
+ else if(e.target.dataset.f){
+  if(e.target.dataset.f==="diet")sel.diet=e.target.value;
+  else if(e.target.dataset.f==="grassPref")sel.grassPref=+e.target.value;
+  else if(e.target.dataset.f==="carnPref"){const [b, d] = e.target.value.split("_");sel.carnBiomePref = +b; sel.carnDietPref = d;}
+  renderPanel();
+ }
+});
+
+function renderDetail(ds){
+ const rows=[["草食動物","#97d16a",ds.herbivore],["果物動物","#3498db",ds.frugivore],["腐肉動物","#9b59b6",ds.scavenger],["肉食動物","#e74c3c",ds.carnivore]];
+ let h=`<table><thead><tr><th>食性（平均）</th><th>数</th><th>サイズ</th><th>視認距離</th><th>速度</th><th>出産CT(日)</th><th>出産数</th></tr></thead><tbody>`;
+ for(const[nm,col,q] of rows){
+  if(q.n)h+=`<tr><td><i style="background:${col}"></i>${nm}</td><td>${q.n}</td><td>${(q.size/q.n).toFixed(1)}</td><td>${(q.vision/q.n).toFixed(0)}</td><td>${(q.speed/q.n).toFixed(0)}</td><td>${(q.cd/q.n/DAY).toFixed(2)}</td><td>${(q.litterSize/q.n).toFixed(1)}</td></tr>`;
+  else h+=`<tr><td><i style="background:${col}"></i>${nm}</td><td>0</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
+ }
+ $("detailBox").innerHTML=h+`</tbody></table>`;
+}
+function updateCounts(){
+ const cnt={},gm={};let herbivoreCount=0,frugivoreCount=0,carnivoreCount=0,scavengerCount=0;let totalPop=0;
+ const ds={herbivore:{n:0,size:0,vision:0,speed:0,cd:0,litterSize:0},frugivore:{n:0,size:0,vision:0,speed:0,cd:0,litterSize:0},scavenger:{n:0,size:0,vision:0,speed:0,cd:0,litterSize:0},carnivore:{n:0,size:0,vision:0,speed:0,cd:0,litterSize:0}};
+ for(const c of pop){
+  if(c.dead) continue;
+  const q=ds[c.diet];if(q){q.n++;q.size+=c.s.size;q.vision+=c.s.vision;q.speed+=c.s.speed;q.cd+=c.s.cd;q.litterSize+=(c.s.litterSize||1)}
+  cnt[c.h.id]=(cnt[c.h.id]||0)+1;gm[c.h.id]=Math.max(gm[c.h.id]||0,c.gen);
+  if(c.diet==="herbivore")herbivoreCount++;
+  else if(c.diet==="frugivore")frugivoreCount++;
+  else if(c.diet==="scavenger")scavengerCount++;
+  else if(c.diet==="carnivore")carnivoreCount++;
+  if(c.size > maxObservedSize) maxObservedSize = c.size;
+  totalPop++;
+ }
+ let needReRender = false;
+ const herdStats = herds.map(g => ({ g, count: cnt[g.id] || 0 }));
+ herdStats.sort((a, b) => b.count - a.count || a.g.id - b.g.id);
+ for(let i=0; i<herdStats.length; i++){
+  const stat = herdStats[i];const g = stat.g;
+  if(cnt[g.id]){g.had=true;g.lastGen=gm[g.id]}
+  else if(g.had){g.had=false;sfx("ext");toast(g.name+"が絶滅しました（最大"+(g.lastGen||1)+"世代）");}
+  const pct = totalPop > 0 ? (stat.count / totalPop * 100).toFixed(1) : 0;
+  const row = $("herdRow" + g.id);
+  if(row){row.style.order = i;row.style.background = `linear-gradient(to right, ${g.color}44 ${pct}%, transparent ${pct}%)`;}
+  const e=$("n"+g.id);
+  if(e){e.textContent = stat.count ? `${pct}% (${stat.count}匹) 最大${gm[g.id]}世代` : `絶滅${g.lastGen?"（最大"+g.lastGen+"世代）":""}`;}
+ }
+ if(env.autoDelExtinct){
+  const extinctList = herds.filter(g => g.had===false && !cnt[g.id]);
+  if(extinctList.length > 0){
+   herds = herds.filter(g => !extinctList.includes(g));
+   if(extinctList.includes(sel)) sel = herds[0] || null;
+   needReRender = true;
+  }
+ }
+ if(needReRender) renderPanel();
+
+ $("dayStat").textContent=`${Math.floor(T/DAY)+1}日目`;
+ $("allCount").textContent=pop.length.toLocaleString("ja-JP");
+ $("maxSize").textContent=maxObservedSize.toFixed(1);
+ $("corpseCount").textContent=corpses.length.toLocaleString("ja-JP");
+ $("carnivoreCount").textContent=carnivoreCount.toLocaleString("ja-JP");
+ $("scavengerCount").textContent=scavengerCount.toLocaleString("ja-JP");
+ $("frugivoreCount").textContent=frugivoreCount.toLocaleString("ja-JP");
+ $("herbivoreCount").textContent=herbivoreCount.toLocaleString("ja-JP");
+ if(!$("detailBox").hidden)renderDetail(ds);
+
+ const tDiet = herbivoreCount + frugivoreCount + scavengerCount + carnivoreCount;
+ if(tDiet > 0){
+  $("barHerb").style.width = (herbivoreCount / tDiet * 100) + "%";
+  $("barFrug").style.width = (frugivoreCount / tDiet * 100) + "%";
+  $("barScav").style.width = (scavengerCount / tDiet * 100) + "%";
+  $("barCarn").style.width = (carnivoreCount / tDiet * 100) + "%";
+ } else {
+  $("barHerb").style.width = "0%";$("barFrug").style.width = "0%";$("barScav").style.width = "0%";$("barCarn").style.width = "0%";
+ }
+
+ const i=$("info");
+ if(i){
+  if(selC){
+   const prefBName = BIOMES[selC.fruitPref?.[0] ?? 3]?.[0] || "";
+   const prefTxt = selC.diet==="frugivore" ? ` (果物:${prefBName})` : selC.diet==="herbivore" ? ` (草:${grassPrefName(selC.grassPref??selC.h.grassPref)})` : selC.diet==="carnivore" ? ` (獲物:${carnPrefName(selC.carnBiomePref??selC.h.carnBiomePref, selC.carnDietPref??selC.h.carnDietPref)})` : "";
+   const huntCdTxt = selC.diet==="carnivore" && selC.huntCd>0 ? ` [CT:${selC.huntCd.toFixed(1)}s]` : "";
+   const herdHuntCdTxt = selC.diet==="carnivore" && selC.h.huntCd>0 ? ` [群れCT:${selC.h.huntCd.toFixed(1)}s]` : "";
+   const lTxt = selC.isLeader && env.enablePersonality && (selC.personality==="social"||selC.personality==="sharing") ? " 👑リーダー" : "";
+   const pTxt = env.enablePersonality ? ` 性格:${P_NAME[selC.personality]||"孤立"}` : "";
+   i.textContent=`🎯追尾中: ${selC.h.name}${lTxt} 【${DIETN[selC.diet]||"草食動物"}】${prefTxt}${pTxt} (${selC.gen}代) 群れの生物数${livingHerdCount(selC.h)}匹 サイズ${selC.size.toFixed(1)}(最大${selC.s.size.toFixed(1)}) 視認距離${selC.s.vision|0} 年齢${(selC.age/DAY).toFixed(1)}/${lifespanDays(selC).toFixed(0)}日 速度${selC.s.speed|0} 空腹${selC.hun|0}/${maxH(selC)|0} 出産数${selC.s.litterSize}${huntCdTxt}${herdHuntCdTxt}`;
+  } else {
+   i.textContent="";
+  }
+ }
+}
+
+function save(n){
+ try{
+  const d={ver:3,hadSaved:true,seed,T,env,mapScale:worldScale,maxObservedSize,herds:herds.map(({id,name,color,cx,cy,st,rad,hungry,birthAt,birthCost,hmul,diet,fruitPref,grassPref,carnBiomePref,carnDietPref,huntCd,had,lastGen})=>({id,name,color,cx,cy,st,rad,hungry,birthAt,birthCost,hmul,had,lastGen,huntCd:huntCd||0,diet:diet||"herbivore",fruitPref:Array.isArray(fruitPref)?fruitPref:[fruitPref??3],grassPref:GRASS_BIOMES.includes(grassPref)?grassPref:2,carnBiomePref:carnBiomePref||2,carnDietPref:carnDietPref||"herbivore"})),
+   pop:pop.map(c=>({x:c.x,y:c.y,ang:c.ang,h:c.h.id,s:c.s,size:c.size,hun:c.hun,cdT:c.cdT,age:c.age,gen:c.gen,huntCd:c.huntCd||0,diet:c.diet,fruitPref:c.fruitPref,grassPref:c.grassPref,carnBiomePref:c.carnBiomePref||2,carnDietPref:c.carnDietPref||"herbivore", personality:c.personality||"solitary", isLeader:c.isLeader||false})),fruits:fruits.map(f=>({x:f.x,y:f.y,b:f.b,life:f.life})),grass:Array.from(grass,v=>+v.toFixed(1)),corpses:corpses.map(k=>({...k}))};
+  localStorage.setItem("evo_save_"+n,JSON.stringify(d));
+  localStorage.setItem("evo_meta_"+n,new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}));
+  toast("枠"+n+"にセーブしました");renderPanel();
+ }catch(err){toast("セーブに失敗しました")}
+}
+function load(n){
+ try{
+  const raw=localStorage.getItem("evo_save_"+n);if(!raw){toast("枠"+n+"は空です");return}
+  const d=JSON.parse(raw);mapScale=[1,2,4].includes(d.mapScale)?d.mapScale:1;genWorld(d.seed);T=d.T;maxObservedSize=d.maxObservedSize||0;
+  if(d.env){
+   const DEF_M={maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,preyEBase:80,massExp:3.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,budding:false,buddingRate:0.10,dietMut:0.05,fruitMut:0.05,autoDelExtinct:true,enableScavenger:false,huntHerdCd:0,huntLeaveCorpse:false,enablePersonality:false,personalityMut:0.05,colorSat:80,colorLit:50,...ENV_NEW};
+   env=Object.assign({},DEF_M,d.env);delete env.maxHExp;delete env.sizeMetabExp;delete env.preyExp;
+  }
+  if(!Number.isFinite(env.huntHerdMin))env.huntHerdMin=0;
+  if(!Number.isFinite(env.grassExtreme))env.grassExtreme=1.5;
+  if(!Number.isFinite(env.fruitExtreme))env.fruitExtreme=1.5;
+  if(!Number.isFinite(env.huntSuccess))env.huntSuccess=100;
+  if(!Number.isFinite(env.huntNut))env.huntNut=0.5;
+  if(!Number.isFinite(env.huntCd))env.huntCd=0;
+  if(env.huntCarnivore===undefined)env.huntCarnivore=false;
+  if(!Number.isFinite(env.growthRate))env.growthRate=1.0;
+  if(!Number.isFinite(env.childHmul))env.childHmul=2;
+  if(!Number.isFinite(env.huntHerdCd))env.huntHerdCd=0;
+  if(env.huntLeaveCorpse===undefined)env.huntLeaveCorpse=false;
+  if(env.enablePersonality===undefined)env.enablePersonality=false;
+  if(!Number.isFinite(env.personalityMut))env.personalityMut=0.05;
+  if(Number.isFinite(d.env?.minprey)){env.huntMin = d.env.minprey;env.huntMax = d.env.huntRatio ? +(1/d.env.huntRatio).toFixed(2) : 0.5;delete env.minprey; delete env.huntRatio;}
+  if(!Number.isFinite(env.huntMin))env.huntMin=0.4;
+  if(!Number.isFinite(env.huntMax))env.huntMax=0.8;
+  fc=BIOMES.map(()=>0);
+  herds=d.herds.map(g=>{const h={rad:DEF_RAD,hungry:HUNGRY,birthAt:BIRTH_AT,birthCost:BIRTH_COST,hmul:1,diet:"herbivore",fruitPref:[3],carnBiomePref:2,carnDietPref:"herbivore",huntCd:0,...g};if(!GRASS_BIOMES.includes(h.grassPref))h.grassPref=GRASS_BIOMES.includes(cellAt(h.cx,h.cy))?cellAt(h.cx,h.cy):2;if(!d.ver&&h.diet==="herbivore")h.diet="frugivore"; h.fruitPref=Array.isArray(h.fruitPref)?h.fruitPref:[h.fruitPref??3];return h});
+  pop=[];fx=[];
+  for(const o of d.pop){
+    const h=herds.find(g=>g.id===o.h);
+    if(h){
+      if(!o.s.litterSize) o.s.litterSize = 1;
+      const cRatio = o.size ? o.size / o.s.size : 1;
+      const c=mk(h,o.x,o.y,o.s,o.hun,(!d.ver&&o.diet==="herbivore")?"frugivore":o.diet,o.fruitPref,GRASS_BIOMES.includes(o.grassPref)?o.grassPref:h.grassPref,false,o.huntCd||0,o.carnBiomePref??h.carnBiomePref??2,o.carnDietPref??h.carnDietPref??"herbivore", cRatio, o.personality||"solitary");
+      if(o.isLeader) c.isLeader = true;
+      c.ang=o.ang;c.cdT=o.cdT;c.age=Number.isFinite(o.age)?o.age:0;c.gen=o.gen||1;
+    }
+  }
+  if(!d.hadSaved)for(const h of herds)if(h.had===undefined)h.had=pop.some(c=>c.h===h);
+  fruits=d.fruits;for(const f of fruits)fc[f.b]++;
+  if(d.grass&&d.grass.length===GW*GH){for(let i=0;i<GW*GH;i++)grass[i]=d.grass[i]}
+  corpses=(Array.isArray(d.corpses)?d.corpses:[]).map(k=>({diet:"herbivore",biome:2,...k}));
+  renderGrass();
+  sel=herds[0]||null;selC=null;
+  invalidateCaches();
+  renderPanel();toast("枠"+n+"をロードしました");
+ }catch(err){toast("ロードに失敗しました")}
+}
+
+document.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{speed=+b.dataset.sp;document.querySelectorAll("[data-sp]").forEach(x=>x.classList.toggle("on",x===b))});
+$("fit").onclick=()=>{selC=null;fit()};
+$("tg").onclick=()=>panel.classList.toggle("hide");
+let last=0,acc=0,uAcc=0,gR=0;
+function loop(t){
+ const dt=Math.min(.1,(t-last)/1000||0);last=t;
+ if(speed>0){acc+=dt*speed;let n=0;while(acc>=STEP&&n<80){step(STEP);acc-=STEP;n++}if(n>=80)acc=0}
+ updateCamera();
+ draw();
+ uAcc+=dt;if(uAcc>.5){uAcc=0;updateCounts()}
+ gR+=dt;if(gR>.3){gR=0;renderGrass()}
+ requestAnimationFrame(loop);
+}
+
+const trackRandom = (diet) => {
+  const list = pop.filter(c => c.diet === diet && !c.dead);
+  if(list.length > 0){selC = list[rnd()*list.length|0];sel = selC.h;renderPanel();updateCounts();}
+};
+(()=>{
+ const box=$("detailBox");let dragging=false,pointerId=null,startX=0,startY=0,baseLeft=0,baseTop=0;
+ document.body.appendChild(box);
+ box.addEventListener("pointerdown",e=>{
+  if(e.button!==undefined&&e.button!==0)return;
+  const r=box.getBoundingClientRect();
+  dragging=true;pointerId=e.pointerId;startX=e.clientX;startY=e.clientY;
+  baseLeft=r.left;baseTop=r.top;
+  box.style.left=baseLeft+"px";box.style.top=baseTop+"px";box.style.right="auto";
+  box.classList.add("dragging");box.setPointerCapture(pointerId);e.preventDefault();
+ });
+ box.addEventListener("pointermove",e=>{
+  if(!dragging||e.pointerId!==pointerId)return;
+  const maxLeft=Math.max(0,window.innerWidth-box.offsetWidth),maxTop=Math.max(0,window.innerHeight-box.offsetHeight);
+  box.style.left=clamp(baseLeft+e.clientX-startX,0,maxLeft)+"px";
+  box.style.top=clamp(baseTop+e.clientY-startY,0,maxTop)+"px";
+ });
+ const stop=e=>{if(!dragging||e.pointerId!==pointerId)return;dragging=false;pointerId=null;box.classList.remove("dragging")};
+ box.addEventListener("pointerup",stop);box.addEventListener("pointercancel",stop);
+ window.addEventListener("resize",()=>{
+  if(box.hidden)return;
+  const r=box.getBoundingClientRect();
+  box.style.left=clamp(r.left,0,Math.max(0,window.innerWidth-box.offsetWidth))+"px";
+  box.style.top=clamp(r.top,0,Math.max(0,window.innerHeight-box.offsetHeight))+"px";
+ });
+})();
+$("mDetail").onclick = () => {const b=$("detailBox");b.hidden=!b.hidden;$("detailArrow").textContent=b.hidden?"▼":"▲";updateCounts();};
+$("mHerb").onclick = () => trackRandom("herbivore");
+$("mFrug").onclick = () => trackRandom("frugivore");
+$("mScav").onclick = () => trackRandom("scavenger");
+$("mCarn").onclick = () => trackRandom("carnivore");
+
+resize();newWorld(rnd()*1e6|0);requestAnimationFrame(loop);
+
+</script></body></html>
