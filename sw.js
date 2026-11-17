@@ -1,5 +1,5 @@
 /* 生命の進化 - オフライン対応 / 自動更新 */
-const CACHE_NAME = "evolution-simulation-shell-v2";
+const CACHE_NAME = "evolution-simulation-shell-v0.01";
 const APP_URL = new URL("./", self.registration.scope).href;
 const MANIFEST_URL = new URL("./manifest.webmanifest", self.registration.scope).href;
 
