@@ -53,12 +53,24 @@ button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 #cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 #toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:#000c;color:#fff;padding:6px 12px;border-radius:14px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none}
 
-#info {flex: 0 0 auto;min-height: 34px;padding: 6px 8px;background: var(--pn);border-top: 1px solid var(--bd);font-size: 12px;box-sizing: border-box;word-break: break-all;}
+#info {
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  box-sizing: border-box;
+  word-break: break-all;
+  user-select: text;
+  -webkit-user-select: text;
+}
 #herdList{flex: 0 0 365px;height: 365px;min-height: 0;overflow-y: auto;overflow-x: hidden;overscroll-behavior-y: auto;-webkit-overflow-scrolling: touch;border-top: 1px solid var(--bd);padding: 4px;background: var(--bg);box-sizing: border-box;display: flex;flex-direction: column;gap: 4px;}
 #panel #herdList{flex:0 0 auto;height:auto;max-height:200px;overscroll-behavior-y:auto}
 #panel{flex:0 0 300px;width:300px;min-width:0;min-height:0;overflow-y:auto;background:var(--pn);border-left:1px solid var(--bd);padding:8px;box-sizing:border-box}
 #panel.hide{display:none}
 #panel h3{margin:10px 0 4px;font-size:13px}
+#panel h3:first-child{margin-top:2px}
 #panel h3.fold{cursor:pointer;user-select:none;padding:4px 0;border-bottom:1px solid var(--bd)}
 
 .herd{display: flex;flex-wrap: nowrap;align-items: center;gap: 6px;height: 32px;min-height: 32px;padding: 0 6px;box-sizing: border-box;border: 1px solid var(--bd);border-radius: 6px;cursor: pointer;white-space: nowrap;overflow: hidden;flex-shrink: 0;background: var(--pn);width: 100%;max-width: 100%;}
@@ -121,7 +133,6 @@ input[type=text],input[type=number]{background:var(--bg);color:var(--fg);border:
 <div id="main">
  <div id="leftCol">
   <div id="wrap"><canvas id="cv"></canvas><div id="toast"></div><div id="detailBox" hidden></div></div>
-  <div id="info"></div>
  </div>
  <aside id="panel"></aside>
 </div>
@@ -132,7 +143,7 @@ const $=id=>document.getElementById(id), rnd=Math.random, clamp=(v,a,b)=>Math.ma
 let mapScale=1, worldScale=1;
 const CELL=16; let GW=80, GH=50, WW=GW*CELL, WH=GH*CELL;
 function applyMapDimensions(){worldScale=mapScale;GW=80*mapScale;GH=50*mapScale;WW=GW*CELL;WH=GH*CELL;grass=new Float32Array(GW*GH);grassCv.width=GW;grassCv.height=GH;gImg=gCtx.createImageData(GW,GH);gridCols=Math.ceil(WW/GRID_SIZE);gridRows=Math.ceil(WH/GRID_SIZE);}
-const MAXPOP=600;
+const MAXPOP=1000;
 const MUT=0.12;
 const DAY=60;
 const REF_SIZE=4.0;
@@ -161,15 +172,15 @@ const BIOMES=[
 const P_NAME = { solitary: "孤立", social: "集団", sharing: "共有" };
 
 /* ステータス定義 */
-const SR={size:[0.1,30,0.1,"大きさ"],vision:[0,300,1,"視認距離"],speed:[0,120,1,"移動速度"],cd:[1,29,1,"出産クールタイム(日)"],litterSize:[1,10,1,"出産数"]};
+const SR={size:[0.1,50,0.1,"大きさ"],vision:[0,300,1,"視認距離"],speed:[0,120,1,"移動速度"],cd:[1,29,1,"出産クールタイム(日)"],litterSize:[1,10,1,"出産数"]};
 const DEF={size:3,vision:100,speed:40,cd:15,litterSize:1};
 const HR={rad:[10,300,10,"群れ範囲の半径"],hungry:[0.6,1.0,.01,"空腹と判断する割合"],birthAt:[0.6,1.0,.01,"出産できる空腹度の割合"],birthCost:[0.1,0.9,.05,"出産で減る空腹度の割合"],hmul:[0.1,1.9,.1,"群れの空腹になる速さ(倍)"]};
 
 const ER={
  rate:[0,40,1,"果物の実る速さ(回/秒)"],dens:[0.1,1.9,.1,"果物の最大量(倍)"],life:[10,190,5,"果物が腐るまでの日数"],nut:[0.1,1.9,.1,"果物の栄養(倍)"],
  fruitExtreme:[1,5,.1,"果物の極端さ(1～5)"],
- metab:[0.1,1.9,.1,"空腹になる速さ(倍)"],mut:[0,0.24,.01,"突然変異の幅"],maxpop:[100,1100,10,"最大個体数"],
- sizeMin:[0.1,30,0.1,"生物の最小サイズ"],sizeMax:[0.1,30,0.1,"生物の最大サイズ"],
+ metab:[0.1,1.9,.1,"空腹になる速さ(倍)"],mut:[0,0.24,.01,"突然変異の幅"],maxpop:[500,5000,50,"最大個体数"],
+ sizeMin:[0.1,50,0.1,"生物の最小サイズ"],sizeMax:[0.1,50,0.1,"生物の最大サイズ"],
  spd:[0.1,1.9,.1,"移動速度(倍)"],cdm:[0.1,1.9,.1,"出産クールタイム(倍)"],
  huntSuccess:[0,100,1,"狩りの成功確率(%)"],
  huntCd:[0,120,1,"狩りクールタイム(秒)"],
@@ -196,7 +207,7 @@ const rg=(d,st,nm,cap)=>{const f=x=>+x.toFixed(6);let lo=f(Math.round(d/3/st)*st
 Object.assign(SR,{vision:[0,300,1,SR.vision[3]],speed:[0,120,1,SR.speed[3]],cd:rg(DEF.cd,1,SR.cd[3]),litterSize:[1,10,1,SR.litterSize[3]]});
 Object.assign(HR,{rad:[10,300,5,HR.rad[3]],hungry:rg(HUNGRY,.01,HR.hungry[3],1),birthAt:rg(BIRTH_AT,.01,HR.birthAt[3],1),birthCost:rg(BIRTH_COST,.01,HR.birthCost[3],.95),hmul:rg(1,.01,HR.hmul[3])});
 Object.assign(ER,{
- rate:rg(FRUIT_RATE,1,ER.rate[3]),dens:rg(1,.01,ER.dens[3]),life:rg(100,1,ER.life[3]),nut:rg(1,.01,ER.nut[3]),metab:rg(1,.01,ER.metab[3]),mut:rg(MUT,.01,ER.mut[3]),maxpop:rg(MAXPOP,10,ER.maxpop[3]),
+ rate:rg(FRUIT_RATE,1,ER.rate[3]),dens:rg(1,.01,ER.dens[3]),life:rg(100,1,ER.life[3]),nut:rg(1,.01,ER.nut[3]),metab:rg(1,.01,ER.metab[3]),mut:rg(MUT,.01,ER.mut[3]),maxpop:[500,5000,50,"最大個体数"],
  spd:rg(1,.01,ER.spd[3]),cdm:rg(1,.01,ER.cdm[3]),huntNut:rg(0.5,.01,ER.huntNut[3]),huntMin:[0,1,.01,ER.huntMin[3]],huntMax:[0,1,.01,ER.huntMax[3]],corpseMeat:[0,1,.01,ER.corpseMeat[3]],
  grassRate:rg(1,.01,ER.grassRate[3]),grassMax:rg(1,.01,ER.grassMax[3]),grassNut:rg(1,.01,ER.grassNut[3]),grassEat:rg(1,.01,ER.grassEat[3]),
  grassExtreme:[1,5,.1,ER.grassExtreme[3]],fruitExtreme:[1,5,.1,ER.fruitExtreme[3]],corpseLife:rg(120,1,ER.corpseLife[3]),corpseEat:rg(1,.01,ER.corpseEat[3]),
@@ -217,7 +228,7 @@ const GRASS_BIOMES=[2,3,4];
 const grassPrefName=id=>BIOMES[id]?.[0]||"草原";
 
 const ENV_NEW={
- sizeMin:0.1, sizeMax:30, grassRate:1, grassMax:1, grassNut:1, grassEat:1, grassExtreme:1.5, fruitExtreme:1.5, huntHerdMin:0, corpseMeat:0.2, corpseLife:120, corpseEat:1, lifespan:10, lifespanExp:.75, huntCarnivore:true, huntSuccess:100, huntCd:0, growthRate:1.0, enableScavenger:false, childHmul:2, huntScavenger:false, eatScavCorpse:false, colorSat:50, colorLit:70, huntHerdCd:0, huntLeaveCorpse:false, enablePersonality:false, personalityMut:0.05
+ sizeMin:0.1, sizeMax:50, grassRate:1, grassMax:1, grassNut:1, grassEat:1, grassExtreme:1.5, fruitExtreme:1.5, huntHerdMin:0, corpseMeat:0.2, corpseLife:120, corpseEat:1, lifespan:10, lifespanExp:.75, huntCarnivore:true, huntSuccess:100, huntCd:0, growthRate:1.0, enableScavenger:false, childHmul:2, huntScavenger:false, eatScavCorpse:false, colorSat:50, colorLit:70, huntHerdCd:0, huntLeaveCorpse:false, enablePersonality:false, personalityMut:0.05, maxpop:1000
 };
 
 const CARN_PREFS=[
@@ -270,15 +281,16 @@ const getCreatureBiome=c=>{
 const carnPrefName=(b,d)=>{const it=CARN_PREFS.find(p=>p.b===b&&p.d===d);return it?it.n:`${grassPrefName(b)}の${DIETN[d]||"獲物"}`};
 
 let seed=1,biome,mapCv,fruitCells=[],maxF=[],fc=[],fruits=[],pop=[],herds=[],sel=null,selC=null;
+let herdSpawnCells={all:[],2:[],3:[],4:[]};
 let maxObservedSize=0;
 let grass=new Float32Array(GW*GH),grassCells=[],corpses=[],gAcc=0;
 const grassCv=document.createElement("canvas");grassCv.width=GW;grassCv.height=GH;
 const gCtx=grassCv.getContext("2d"); let gImg=gCtx.createImageData(GW,GH);
 let T=0,speed=1,placing=false,nextHid=1,nextId=1,fx=[];
 let env={
- rate:FRUIT_RATE,dens:1,life:100,nut:1,metab:1,mut:MUT,maxpop:MAXPOP,spd:1,cdm:1,huntMin:.4,huntMax:.8,huntNut:0.5,grassExtreme:1.5,fruitExtreme:1.5,huntHerdMin:0,
+ rate:FRUIT_RATE,dens:1,life:100,nut:1,metab:1,mut:MUT,maxpop:1000,spd:1,cdm:1,huntMin:.4,huntMax:.8,huntNut:0.5,grassExtreme:1.5,fruitExtreme:1.5,huntHerdMin:0,
  maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,
- preyEBase:80,massExp:3.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,
+ preyEBase:80,massExp:1.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,
  budding:false, buddingRate:0.10, dietMut:0.05, fruitMut:0.05, autoDelExtinct:true,
  ...ENV_NEW
 };
@@ -361,14 +373,14 @@ function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=x
  const a=hash(xi,yi),b=hash(xi+1,yi),c=hash(xi,yi+1),d=hash(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
 function fbm(x,y,o){let s=0,a=1,t=0,f=1;for(let i=0;i<3;i++){s+=a*vnoise(x*f+o,y*f+o);t+=a;a/=2;f*=2}return s/t}
 function genWorld(s){
- seed=s;applyMapDimensions();biome=new Uint8Array(GW*GH);fruitCells=[];maxF=BIOMES.map(()=>0);
+ seed=s;applyMapDimensions();biome=new Uint8Array(GW*GH);herdSpawnCells={all:[],2:[],3:[],4:[]};fruitCells=[];maxF=BIOMES.map(()=>0);
  mapCv=document.createElement("canvas");mapCv.width=WW;mapCv.height=WH;const g=mapCv.getContext("2d");
  for(let y=0;y<GH;y++)for(let x=0;x<GW;x++){
   const dx=(x/GW-.5)*2,dy=(y/GH-.5)*2;
   const e=fbm(x/(20*mapScale),y/(20*mapScale),0)-Math.pow(Math.max(Math.abs(dx),Math.abs(dy)),3)*.45;
   const m=fbm(x/(16*mapScale),y/(16*mapScale),50);
   let b;if(e<.18)b=0;else if(e<.26)b=1;else if(e>.62)b=4;else if(m<.5)b=2;else b=3;
-  biome[y*GH*0+y*GW+x]=b;
+  const cellIndex=y*GW+x;biome[cellIndex]=b;if(b>=2){herdSpawnCells.all.push(cellIndex);herdSpawnCells[b].push(cellIndex);}
   g.fillStyle=BIOMES[b][1];g.fillRect(x*CELL,y*CELL,CELL,CELL);
   g.fillStyle="rgba(0,0,0,"+hash(x,y)*.07+")";g.fillRect(x*CELL,y*CELL,CELL,CELL);
   if(BIOMES[b][2]>0){
@@ -433,6 +445,47 @@ function updateCorpses(dt){
 
 function randLand(){for(let k=0;k<300;k++){const i=fruitCells[rnd()*fruitCells.length|0];if(biome[i]>=2)return[(i%GW+.5)*CELL,(Math.floor(i/GW)+.5)*CELL]}return[WW/2,WH/2]}
 function bestBiome(b){const cells=[];for(let i=0;i<biome.length;i++)if(biome[i]===b)cells.push(i);if(!cells.length)return randLand();let best=cells[0],maxS=-1;for(const i of cells){const cx=i%GW,cy=Math.floor(i/GW);let s=0;for(let y=Math.max(0,cy-8*mapScale);y<=Math.min(GH-1,cy+8*mapScale);y++)for(let x=Math.max(0,cx-8*mapScale);x<=Math.min(GW-1,cx+8*mapScale);x++)if(biome[y*GW+x]===b)s++;if(s>maxS){maxS=s;best=i}}return[(best%GW+.5)*CELL,(Math.floor(best/GW)+.5)*CELL]}
+
+function findSeparatedHerdCenter(allowedBiomes=null, radius=DEF_RAD, target=null){
+ const allowed = allowedBiomes == null ? null : new Set(Array.isArray(allowedBiomes) ? allowedBiomes : [allowedBiomes]);
+ let cells;
+ if(!allowed){
+  cells=herdSpawnCells.all;
+ }else{
+  const ids=[...allowed];
+  if(ids.length===1){
+   cells=herdSpawnCells[ids[0]]||[];
+  }else{
+   cells=[];
+   for(const id of ids) for(const cell of (herdSpawnCells[id]||[])) cells.push(cell);
+  }
+ }
+ if(!cells.length && allowed) cells=herdSpawnCells.all;
+ if(!cells.length) return target ? [target[0],target[1]] : randLand();
+
+ const sampleCount=Math.min(700,cells.length), used=new Set();
+ let bestClear=null,bestClearScore=-Infinity,bestFallback=null,bestFallbackScore=-Infinity;
+ for(let n=0;n<sampleCount;n++){
+  let ci;
+  do{ci=rnd()*cells.length|0}while(used.has(ci));
+  used.add(ci);
+  const cell=cells[ci],x=(cell%GW+.25+rnd()*.5)*CELL,y=(Math.floor(cell/GW)+.25+rnd()*.5)*CELL;
+  let clearance=Infinity;
+  for(const g of herds){
+   const d=Math.hypot(g.cx-x,g.cy-y)-(g.rad+radius+CELL);
+   if(d<clearance) clearance=d;
+  }
+  const targetDist=target?Math.hypot(x-target[0],y-target[1]):0;
+  if(clearance>=0){
+   const score=target ? -targetDist+Math.min(clearance,300)*.03 : clearance;
+   if(score>bestClearScore){bestClearScore=score;bestClear=[x,y]}
+  }else{
+   const score=target ? clearance-targetDist*.001 : clearance;
+   if(score>bestFallbackScore){bestFallbackScore=score;bestFallback=[x,y]}
+  }
+ }
+ return bestClear||bestFallback||(target?[target[0],target[1]]:randLand());
+}
 
 function addHerd(name,st,preferredBiome=null, diet="herbivore"){
  const id=nextHid++;
@@ -622,7 +675,6 @@ function updateCreature(c,dt,born){
   else{
    want=Math.atan2(t.y-c.y,t.x-c.x);sp=s.speed;
    if(env.enablePersonality && c.personality==="sharing" && c.h.hasHungryMember){
-    // 共有型は空腹の仲間がいる間、果物を独占せず譲る
     if(Math.hypot(t.x-c.x,t.y-c.y)<c.size+12)sp=s.speed*0.5;
    } else if(t.life>0&&!isTargetClaimed(t,3,c)&&Math.hypot(t.x-c.x,t.y-c.y)<c.size+3){
     t.life=0;foodNutrition+=fruitNut(t.b);
@@ -864,6 +916,11 @@ function disperseHerd(h, members, leaveCount){
  }
 
  [bestX,bestY] = findFoodCenter(base, bestX, bestY, h.rad);
+ const newRad = clamp(Math.round((h.rad * (0.8 + rnd() * 0.4) + (rnd() - 0.5) * 20) / 5) * 5, 10, 300);
+ const allowedBiomes = base.diet === "herbivore" ? [base.grassPref??base.h.grassPref??2] :
+  base.diet === "frugivore" ? (base.fruitPref||base.h.fruitPref||[3]) :
+  base.diet === "carnivore" ? [base.carnBiomePref??base.h.carnBiomePref??2] : null;
+ [bestX,bestY] = findSeparatedHerdCenter(allowedBiomes,newRad,[bestX,bestY]);
  const vegName = BIOMES[cellAt(bestX, bestY)][0];
  const foodName = base.diet === "carnivore" ? carnPrefName(base.carnBiomePref, base.carnDietPref) : base.diet === "scavenger" ? "死体" : base.diet === "herbivore" ? `${grassPrefName(base.grassPref??base.h.grassPref)}の草` : ((base.fruitPref||[3]).map(b=>BIOMES[b][0]).join("・") + "果実");
  
@@ -875,7 +932,7 @@ function disperseHerd(h, members, leaveCount){
  const baseBiome = base.diet === "carnivore" ? (base.carnBiomePref ?? base.h.carnBiomePref ?? 2) : base.diet === "frugivore" ? ((base.fruitPref && base.fruitPref[0]) ?? (base.h.fruitPref && base.h.fruitPref[0]) ?? 3) : (base.grassPref ?? base.h.grassPref ?? 2);
  const newH = addHerd(newName, { ...base.s, size: +avgSize }, baseBiome, base.diet);
  newH.cx = bestX; newH.cy = bestY;
- newH.rad = clamp(Math.round((h.rad * (0.8 + rnd() * 0.4) + (rnd() - 0.5) * 20) / 5) * 5, 10, 300);
+ newH.rad = newRad;
  newH.hungry = h.hungry;
  newH.birthAt = h.birthAt; newH.birthCost = h.birthCost;
  newH.hmul = h.hmul;
@@ -976,7 +1033,7 @@ function determineChildCarnPref(a, b, isDietMutatedToCarn){
   const pick = CARN_PREFS[rnd()*CARN_PREFS.length|0];
   bPref = pick.b; dPref = pick.d;
   mutated = true;
- } else if(rnd() < (env.fruitMut??0.01)){
+ } else if(rnd() < (env.fruitMut ?? 0.01)){
   const pick = CARN_PREFS[rnd()*CARN_PREFS.length|0];
   bPref = pick.b; dPref = pick.d;
   toast(`🥩 狩りの好みが突然変異！【${carnPrefName(bPref, dPref)}】を好む肉食獣が誕生！`);
@@ -1004,25 +1061,13 @@ function determineChildPersonality(a, b, diet){
 }
 
 function createMutantHerd(a, b, diet, fruitPref, grassPref, carnBiomePref, carnDietPref){
-  let newCx = CELL*2, newCy = CELL*2;
-  if (diet === "carnivore") {
-    const bPos = bestBiome(carnBiomePref);
-    newCx = bPos[0]; newCy = bPos[1];
-  } else {
-    let found = false;
-    for(let tryK=0; tryK<200; tryK++){
-      const nx = CELL*2 + rnd()*(WW-CELL*4);
-      const ny = CELL*2 + rnd()*(WH-CELL*4);
-      if(cellAt(nx, ny) < 2) continue;
-      let ok = true;
-      for(const g of herds){
-        if(Math.hypot(g.cx - nx, g.cy - ny) < g.rad + DEF_RAD){ ok = false; break; }
-      }
-      if(ok){ newCx = nx; newCy = ny; found = true; break; }
-    }
-    if(!found){ const bPos = bestBiome(grassPref); newCx = bPos[0]; newCy = bPos[1]; }
-  }
   const avgSize = ((a.s.size + b.s.size)/2).toFixed(1);
+  const newRad = clamp(Math.round((a.h.rad * (0.8 + rnd() * 0.4) + (rnd() - 0.5) * 20) / 5) * 5, 10, 300);
+  const allowedBiomes = diet === "herbivore" ? [grassPref] :
+    diet === "frugivore" ? fruitPref :
+    diet === "carnivore" ? [carnBiomePref] : null;
+  const [newCx,newCy] = findSeparatedHerdCenter(allowedBiomes,newRad,null);
+
   const dietName = DIETN[diet] ? DIETN[diet].replace("動物","") : "不明";
   let bId = cellAt(newCx, newCy);
   if (diet === "herbivore") bId = grassPref;
@@ -1035,9 +1080,9 @@ function createMutantHerd(a, b, diet, fruitPref, grassPref, carnBiomePref, carnD
     const prefDName = DIETN[carnDietPref] ? DIETN[carnDietPref].slice(0, 2) : "";
     newName += `(${prefBName}${prefDName})`;
   }
-  const newH = addHerd(newName, { ...a.s, size: +avgSize }, bId, diet); 
+  const newH = addHerd(newName, { ...a.s, size: +avgSize }, bId, diet);
   newH.cx = newCx; newH.cy = newCy;
-  newH.rad = clamp(Math.round((a.h.rad * (0.8 + rnd() * 0.4) + (rnd() - 0.5) * 20) / 5) * 5, 10, 300);
+  newH.rad = newRad;
   newH.hungry = a.h.hungry; newH.birthAt = a.h.birthAt; newH.birthCost = a.h.birthCost; newH.hmul = a.h.hmul;
   newH.diet = diet; newH.fruitPref = [...fruitPref]; newH.grassPref = grassPref; newH.carnBiomePref = carnBiomePref; newH.carnDietPref = carnDietPref;
   return newH;
@@ -1181,16 +1226,18 @@ function draw(){
   const r=c.size,a=c.ang;let px=c.x,py=c.y;
   if(c.lunge>0){const k=Math.sin(c.lunge/.25*Math.PI)*r*.7;px+=Math.cos(c.la)*k;py+=Math.sin(c.la)*k}
   
-  ctx.fillStyle=c.h.color;ctx.beginPath();ctx.arc(px|0,py|0,r,0,6.283);ctx.fill();
-  
+  ctx.fillStyle=c.h.color;ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
+  if (z >= 0.8) ctx.stroke();
+
   if (z >= 0.8) {
-   ctx.stroke();
-   const er=r*(.14+.3*(c.s.vision-30)/220);
+   const eyeR = r * clamp(.14 + .3 * (c.s.vision - 30) / 220, .14, .26);
+   const pupilR = eyeR * .52;
+   const pupilColor = c.diet === "scavenger" ? "#2ecc71" : (c.diet === "carnivore" ? "#d63031" : "#111");
    for(const sd of[-1,1]){
     const ea=a+sd*.7,ex=px+Math.cos(ea)*r*.62,ey=py+Math.sin(ea)*r*.62;
-    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(ex|0,ey|0,er,0,6.283);ctx.fill();
-    ctx.fillStyle= c.diet==="scavenger" ? "#2ecc71" : (c.diet==="carnivore" ? "#d63031" : "#111");
-    ctx.beginPath();ctx.arc((ex+Math.cos(a)*er*.3)|0,(ey+Math.sin(a)*er*.3)|0,er*.55,0,6.283);ctx.fill();
+    ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(ex,ey,eyeR,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=pupilColor;
+    ctx.beginPath();ctx.arc(ex+Math.cos(a)*eyeR*.28,ey+Math.sin(a)*eyeR*.28,pupilR,0,Math.PI*2);ctx.fill();
    }
   }
  }
@@ -1257,16 +1304,16 @@ function twice(key,btn,label,fn){
  else{armed=key;btn.textContent=label;toast(label);clearTimeout(armT);armT=setTimeout(()=>{armed=null;renderPanel()},3000)}}
 function resetAll(){
  Object.assign(env,{
-  rate:FRUIT_RATE,dens:1,life:100,nut:1,metab:1,mut:MUT,maxpop:MAXPOP,spd:1,cdm:1,huntMin:.4,huntMax:.8,huntNut:0.5,grassExtreme:1.5,fruitExtreme:1.5,huntHerdMin:0,
-  maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,preyEBase:80,massExp:3.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,huntSuccess:100,
+  rate:FRUIT_RATE,dens:1,life:100,nut:1,metab:1,mut:MUT,maxpop:1000,spd:1,cdm:1,huntMin:.4,huntMax:.8,huntNut:0.5,grassExtreme:1.5,fruitExtreme:1.5,huntHerdMin:0,
+  maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,preyEBase:80,massExp:1.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,huntSuccess:100,
   budding:false, buddingRate:0.10, dietMut:0.05, fruitMut:0.05, autoDelExtinct:true, enableScavenger:false, ...ENV_NEW
  });
  speed=1;placing=false;document.querySelectorAll("[data-sp]").forEach(x=>x.classList.toggle("on",x.dataset.sp==="1"));
  newWorld(rnd()*1e6|0);toast("新しい世界を作りました")}
 function resetSameWorld(){
  Object.assign(env,{
-  rate:FRUIT_RATE,dens:1,life:100,nut:1,metab:1,mut:MUT,maxpop:MAXPOP,spd:1,cdm:1,huntMin:.4,huntMax:.8,huntNut:0.5,grassExtreme:1.5,fruitExtreme:1.5,huntHerdMin:0,
-  maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,preyEBase:80,massExp:3.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,huntSuccess:100,
+  rate:FRUIT_RATE,dens:1,life:100,nut:1,metab:1,mut:MUT,maxpop:1000,spd:1,cdm:1,huntMin:.4,huntMax:.8,huntNut:0.5,grassExtreme:1.5,fruitExtreme:1.5,huntHerdMin:0,
+  maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,preyEBase:80,massExp:1.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,huntSuccess:100,
   budding:false, buddingRate:0.10, dietMut:0.05, fruitMut:0.05, autoDelExtinct:true, enableScavenger:false, ...ENV_NEW
  });
  speed=1;placing=false;document.querySelectorAll("[data-sp]").forEach(x=>x.classList.toggle("on",x.dataset.sp==="1"));
@@ -1307,7 +1354,7 @@ panel.addEventListener("click", e => {
 let renderPending=false;
 function renderPanel(){
  if(panel.querySelector(".numedit")){renderPending=true;return}
- let h=`<h3>群れ一覧</h3><div id="herdList"></div><h3>選択中の群れ</h3><button data-act="add" style="margin-top:6px">＋群れを作る</button>`;
+ let h=`<h3>追尾中</h3><div id="info"></div><h3>群れ一覧</h3><div id="herdList"></div><h3>選択中の群れ</h3><button data-act="add" style="margin-top:6px">＋群れを作る</button>`;
  if(sel){
   h+=`<div style="margin-top:10px" class="row"><input type="text" data-f="name" value="${esc(sel.name)}"><input type="color" data-f="color" value="${sel.color}"></div>`;
   for(const k of["size","vision","speed","litterSize"]){const[lo,hi,st,nm]=SR[k];h+=`<label>${nm}<output id="o_${k}">${dv(k,sel.st[k])}</output><input type="range" data-k="${k}" min="${lo}" max="${hi}" step="${st}" value="${sel.st[k]}"></label>`}
@@ -1462,19 +1509,32 @@ panel.addEventListener("change",e=>{
 
 function renderDetail(ds){
  const rows=[["草食動物","#97d16a",ds.herbivore],["果物動物","#3498db",ds.frugivore],["腐肉動物","#9b59b6",ds.scavenger],["肉食動物","#e74c3c",ds.carnivore]];
- let h=`<table><thead><tr><th>食性（平均）</th><th>数</th><th>サイズ</th><th>視認距離</th><th>速度</th><th>出産CT(日)</th><th>出産数</th></tr></thead><tbody>`;
+ let h=`<table><thead><tr><th>食性（平均）</th><th>数</th><th>サイズ</th><th>視認距離</th><th>速度</th><th>最大世代</th><th>出産数</th></tr></thead><tbody>`;
  for(const[nm,col,q] of rows){
-  if(q.n)h+=`<tr><td><i style="background:${col}"></i>${nm}</td><td>${q.n}</td><td>${(q.size/q.n).toFixed(1)}</td><td>${(q.vision/q.n).toFixed(0)}</td><td>${(q.speed/q.n).toFixed(0)}</td><td>${(q.cd/q.n/DAY).toFixed(2)}</td><td>${(q.litterSize/q.n).toFixed(1)}</td></tr>`;
+  if(q.n)h+=`<tr><td><i style="background:${col}"></i>${nm}</td><td>${q.n}</td><td>${(q.size/q.n).toFixed(1)}</td><td>${(q.vision/q.n).toFixed(0)}</td><td>${(q.speed/q.n).toFixed(0)}</td><td>${q.maxGen}</td><td>${(q.litterSize/q.n).toFixed(1)}</td></tr>`;
   else h+=`<tr><td><i style="background:${col}"></i>${nm}</td><td>0</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
  }
  $("detailBox").innerHTML=h+`</tbody></table>`;
 }
 function updateCounts(){
  const cnt={},gm={};let herbivoreCount=0,frugivoreCount=0,carnivoreCount=0,scavengerCount=0;let totalPop=0;
- const ds={herbivore:{n:0,size:0,vision:0,speed:0,cd:0,litterSize:0},frugivore:{n:0,size:0,vision:0,speed:0,cd:0,litterSize:0},scavenger:{n:0,size:0,vision:0,speed:0,cd:0,litterSize:0},carnivore:{n:0,size:0,vision:0,speed:0,cd:0,litterSize:0}};
+ const ds={
+  herbivore:{n:0,size:0,vision:0,speed:0,maxGen:0,litterSize:0},
+  frugivore:{n:0,size:0,vision:0,speed:0,maxGen:0,litterSize:0},
+  scavenger:{n:0,size:0,vision:0,speed:0,maxGen:0,litterSize:0},
+  carnivore:{n:0,size:0,vision:0,speed:0,maxGen:0,litterSize:0}
+ };
  for(const c of pop){
   if(c.dead) continue;
-  const q=ds[c.diet];if(q){q.n++;q.size+=c.s.size;q.vision+=c.s.vision;q.speed+=c.s.speed;q.cd+=c.s.cd;q.litterSize+=(c.s.litterSize||1)}
+  const q=ds[c.diet];
+  if(q){
+   q.n++;
+   q.size+=c.s.size;
+   q.vision+=c.s.vision;
+   q.speed+=c.s.speed;
+   if(c.gen > q.maxGen) q.maxGen = c.gen;
+   q.litterSize+=(c.s.litterSize||1);
+  }
   cnt[c.h.id]=(cnt[c.h.id]||0)+1;gm[c.h.id]=Math.max(gm[c.h.id]||0,c.gen);
   if(c.diet==="herbivore")herbivoreCount++;
   else if(c.diet==="frugivore")frugivoreCount++;
@@ -1537,7 +1597,7 @@ function updateCounts(){
    const pTxt = env.enablePersonality ? ` 性格:${P_NAME[selC.personality]||"孤立"}` : "";
    i.textContent=`🎯追尾中: ${selC.h.name}${lTxt} 【${DIETN[selC.diet]||"草食動物"}】${prefTxt}${pTxt} (${selC.gen}代) 群れの生物数${livingHerdCount(selC.h)}匹 サイズ${selC.size.toFixed(1)}(最大${selC.s.size.toFixed(1)}) 視認距離${selC.s.vision|0} 年齢${(selC.age/DAY).toFixed(1)}/${lifespanDays(selC).toFixed(0)}日 速度${selC.s.speed|0} 空腹${selC.hun|0}/${maxH(selC)|0} 出産数${selC.s.litterSize}${huntCdTxt}${herdHuntCdTxt}`;
   } else {
-   i.textContent="";
+   i.textContent="追尾中の生物はいません（地図上の生物をタップすると追尾します）";
   }
  }
 }
@@ -1556,7 +1616,7 @@ function load(n){
   const raw=localStorage.getItem("evo_save_"+n);if(!raw){toast("枠"+n+"は空です");return}
   const d=JSON.parse(raw);mapScale=[1,2,4].includes(d.mapScale)?d.mapScale:1;genWorld(d.seed);T=d.T;maxObservedSize=d.maxObservedSize||0;
   if(d.env){
-   const DEF_M={maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,preyEBase:80,massExp:3.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,budding:false,buddingRate:0.10,dietMut:0.05,fruitMut:0.05,autoDelExtinct:true,enableScavenger:false,huntHerdCd:0,huntLeaveCorpse:false,enablePersonality:false,personalityMut:0.05,colorSat:80,colorLit:50,...ENV_NEW};
+   const DEF_M={maxHBase:60,metabBase:0.35,moveCost:0.6,senseCost:0.2,preyEBase:80,massExp:1.0,bmrExp:0.75,moveMassExp:1.0,moveSpeedExp:2.0,huntSizeBonus:0.015,herdCap:20,budding:false,buddingRate:0.10,dietMut:0.05,fruitMut:0.05,autoDelExtinct:true,enableScavenger:false,huntHerdCd:0,huntLeaveCorpse:false,enablePersonality:false,personalityMut:0.05,colorSat:80,colorLit:50,...ENV_NEW};
    env=Object.assign({},DEF_M,d.env);delete env.maxHExp;delete env.sizeMetabExp;delete env.preyExp;
   }
   if(!Number.isFinite(env.huntHerdMin))env.huntHerdMin=0;
@@ -1651,12 +1711,10 @@ $("mCarn").onclick = () => trackRandom("carnivore");
 
 resize();newWorld(rnd()*1e6|0);requestAnimationFrame(loop);
 
-// GitHub Pages用：オンラインなら最新版を確認し、オフラインなら保存済みのゲームを起動する。
 if ("serviceWorker" in navigator && window.isSecureContext) {
   const hadController = !!navigator.serviceWorker.controller;
   let reloadingForUpdate = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    // 起動直後に更新が適用された場合だけ読み直す。プレイ中の状態を突然消さない。
     if (hadController && !reloadingForUpdate && performance.now() < 15000) {
       reloadingForUpdate = true;
       location.reload();
@@ -1667,11 +1725,8 @@ if ("serviceWorker" in navigator && window.isSecureContext) {
       scope: "./",
       updateViaCache: "none"
     }).then(registration => {
-      // 起動時に必ず更新確認。オフライン時の失敗は無視してキャッシュ版で遊べる。
       registration.update().catch(() => {});
-    }).catch(() => {
-      // Service Workerを利用できない環境でも、オンラインの通常プレイは可能。
-    });
+    }).catch(() => {});
   }, { once: true });
 }
 
