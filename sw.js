@@ -1,5 +1,5 @@
 /* 生命の進化 - オフライン対応 / 自動更新 */
-const CACHE_NAME = "evolution-simulation-shell-v1";
+const CACHE_NAME = "evolution-simulation-shell-v2";
 const APP_URL = new URL("./", self.registration.scope).href;
 const MANIFEST_URL = new URL("./manifest.webmanifest", self.registration.scope).href;
 
@@ -10,6 +10,9 @@ self.addEventListener("install", event => {
     await cache.add(APP_URL);
     // マニフェストは追加保存に失敗してもゲーム本体のインストールを妨げない。
     try { await cache.add(MANIFEST_URL); } catch (_) {}
+    for (const asset of ["./apple-touch-icon.png", "./icon-192.png", "./icon-512.png"]) {
+      try { await cache.add(asset); } catch (_) {}
+    }
     await self.skipWaiting();
   })());
 });
