@@ -80,6 +80,8 @@ button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 .herd span{margin-left:auto;font-size:11px;flex:0 0 auto;white-space:nowrap}
 
 label{display:block;font-size:12px;margin:4px 0}
+label.chg{color:#e5484d;font-weight:600}
+label.chg output{border-bottom-color:#e5484d}
 label input[type=range]{width:100%;-webkit-appearance:none;appearance:none;background:transparent;pointer-events:none;height:24px;margin:2px 0}
 label input[type=range]:focus{outline:none}
 label input[type=range]::-webkit-slider-runnable-track{width:100%;height:4px;background:var(--bd);border-radius:2px}
@@ -294,7 +296,9 @@ let env={
  budding:false, buddingRate:0.10, dietMut:0.05, fruitMut:0.05, autoDelExtinct:true,
  ...ENV_NEW
 };
+const ENV_DEFAULTS=Object.freeze({...env});
 let cw=0,ch=0,dpr=1,z=1,ox=0,oy=0,fitted=false;
+let renderAlpha=0;
 const cv=$("cv"),ctx=cv.getContext("2d"),panel=$("panel"),wrap=$("wrap");
 
 const GRID_SIZE = 100;
@@ -1198,6 +1202,16 @@ function step(dt){
  if(selC&&selC.dead)selC=pop.find(c=>c.h===selC.h)||null;
 }
 
+function updateRender(){
+ const a=speed>0?Math.min(1,acc/STEP):0;renderAlpha=a;
+ for(const c of pop){
+  if(a>0&&c.px0!==undefined){
+   const dx=c.x-c.px0,dy=c.y-c.py0;
+   if(dx*dx+dy*dy<900){c.rx=c.px0+dx*a;c.ry=c.py0+dy*a;continue}
+  }
+  c.rx=c.x;c.ry=c.y;
+ }
+}
 function draw(){
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=BIOMES[0][1];ctx.fillRect(0,0,cw,ch);clampCam();
  ctx.setTransform(dpr*z,0,0,dpr*z,dpr*ox,dpr*oy);ctx.drawImage(mapCv,0,0);
@@ -1223,7 +1237,7 @@ function draw(){
  }
  ctx.strokeStyle="#808080";ctx.lineWidth=1.2/z;
  for(const c of pop){
-  const r=c.size,a=c.ang;let px=c.x,py=c.y;
+  const r=c.size,a=c.ang;let px=c.rx??c.x,py=c.ry??c.y;
   if(c.lunge>0){const k=Math.sin(c.lunge/.25*Math.PI)*r*.7;px+=Math.cos(c.la)*k;py+=Math.sin(c.la)*k}
   
   ctx.fillStyle=c.h.color;ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
@@ -1247,8 +1261,9 @@ function draw(){
   else{ctx.strokeStyle=e.col;ctx.lineWidth=e.w/z;ctx.beginPath();ctx.arc(e.x|0,e.y|0,e.r+e.grow*k,0,6.283);ctx.stroke()}
  }
  ctx.globalAlpha=1;
- if(selC){ctx.strokeStyle="#fff";ctx.lineWidth=2/z;ctx.beginPath();ctx.arc(selC.x|0,selC.y|0,selC.size+4,0,6.283);ctx.stroke();
-  ctx.setLineDash([4/z,4/z]);ctx.beginPath();ctx.arc(selC.x|0,selC.y|0,selC.s.vision,0,6.283);ctx.stroke();ctx.setLineDash([])}
+ if(selC){const sx=selC.rx??selC.x,sy=selC.ry??selC.y;
+  ctx.strokeStyle="#fff";ctx.lineWidth=2/z;ctx.beginPath();ctx.arc(sx,sy,selC.size+4,0,6.283);ctx.stroke();
+  ctx.setLineDash([4/z,4/z]);ctx.beginPath();ctx.arc(sx,sy,selC.s.vision,0,6.283);ctx.stroke();ctx.setLineDash([])}
 }
 
 function clampCam(){
@@ -1259,8 +1274,8 @@ function fit(){z=Math.min(cw/WW,ch/WH)||1;ox=(cw-WW*z)/2;oy=(ch-WH*z)/2;clampCam
 function zoomAt(sx,sy,k){const nz=clamp(z*k,.3,6);k=nz/z;ox=sx-(sx-ox)*k;oy=sy-(sy-oy)*k;z=nz;clampCam()}
 function updateCamera(){
   if(selC && !selC.dead && ptr.size === 0){
-    const tx = cw / 2 - selC.x * z;
-    const ty = ch / 2 - selC.y * z;
+    const tx = cw / 2 - (selC.rx ?? selC.x) * z;
+    const ty = ch / 2 - (selC.ry ?? selC.y) * z;
     ox += (tx - ox) * 0.15;
     oy += (ty - oy) * 0.15;
     clampCam();
@@ -1352,6 +1367,18 @@ panel.addEventListener("click", e => {
 });
 
 let renderPending=false;
+function applyChg(){
+ const HD={rad:DEF_RAD,hungry:HUNGRY,birthAt:BIRTH_AT,birthCost:BIRTH_COST,hmul:1};
+ const ne=(a,b)=>(typeof a==="boolean"||typeof b==="boolean")?!!a!==!!b:Math.abs(+a-+b)>1e-9;
+ panel.querySelectorAll("[data-e],[data-k],[data-p]").forEach(el=>{
+  const d=el.dataset;let cur,def;
+  if(d.e!==undefined){def=ENV_DEFAULTS[d.e];cur=env[d.e]}
+  else if(d.k!==undefined){if(!sel)return;def=DEF[d.k];cur=sel.st[d.k]}
+  else{if(!sel)return;def=HD[d.p];cur=sel[d.p]}
+  const lb=el.closest("label");if(lb)lb.classList.toggle("chg",def!==undefined&&ne(cur,def));
+ });
+ const ms=$("mapScaleSelect");if(ms&&ms.closest("label"))ms.closest("label").classList.toggle("chg",mapScale!==1);
+}
 function renderPanel(){
  if(panel.querySelector(".numedit")){renderPending=true;return}
  let h=`<h3>追尾中</h3><div id="info"></div><h3>群れ一覧</h3><div id="herdList"></div><h3>選択中の群れ</h3><button data-act="add" style="margin-top:6px">＋群れを作る</button>`;
@@ -1419,7 +1446,7 @@ function renderPanel(){
  h+=`<h3>セーブロード</h3>`;for(let n=1;n<=3;n++)h+=`<div class="row"><span style="width:90px;font-size:12px">枠${n}：${localStorage.getItem("evo_meta_"+n)||"空き"}</span><button data-act="save" data-n="${n}">セーブ</button><button data-act="load" data-n="${n}">ロード</button></div>`;
  h+=`<div class="row"><button data-act="new">🌍 新しい世界</button></div><div class="row"><button data-act="resetSame">🔄 リセットした同じ世界</button></div><div class="row"><button data-act="keepSame">✨ 設定を維持した同じ世界</button></div>`;
 
- panel.innerHTML=h;foldify();renderHerdList();updateCounts();
+ panel.innerHTML=h;foldify();renderHerdList();updateCounts();applyChg();
  panel.querySelectorAll("label output").forEach(o=>o.title="クリックして数値を直接入力");
 }
 
@@ -1659,13 +1686,15 @@ function load(n){
  }catch(err){toast("ロードに失敗しました")}
 }
 
+panel.addEventListener("input",applyChg);panel.addEventListener("change",applyChg);
 document.querySelectorAll("[data-sp]").forEach(b=>b.onclick=()=>{speed=+b.dataset.sp;document.querySelectorAll("[data-sp]").forEach(x=>x.classList.toggle("on",x===b))});
 $("fit").onclick=()=>{selC=null;fit()};
 $("tg").onclick=()=>panel.classList.toggle("hide");
 let last=0,acc=0,uAcc=0,gR=0;
 function loop(t){
  const dt=Math.min(.1,(t-last)/1000||0);last=t;
- if(speed>0){acc+=dt*speed;let n=0;while(acc>=STEP&&n<80){step(STEP);acc-=STEP;n++}if(n>=80)acc=0}
+ if(speed>0){acc+=dt*speed;let n=0;while(acc>=STEP&&n<80){for(const c of pop){c.px0=c.x;c.py0=c.y}step(STEP);acc-=STEP;n++}if(n>=80)acc=0}
+ updateRender();
  updateCamera();
  draw();
  uAcc+=dt;if(uAcc>.5){uAcc=0;updateCounts()}
